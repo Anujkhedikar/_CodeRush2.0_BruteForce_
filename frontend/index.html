@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CodeMentor AI</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>CodeMentor AI</h1>
+      <p>Ask for code explanations, reviews, or generation.</p>
+      <form id="mentorForm">
+        <select id="mode">
+          <option value="explain">Explain</option>
+          <option value="review">Review</option>
+          <option value="generate">Generate</option>
+        </select>
+        <input id="language" type="text" value="English" />
+        <textarea id="inputText" rows="6" placeholder="Enter your code or question..."></textarea>
+        <button type="submit">Ask Mentor</button>
+      </form>
+      <pre id="result"></pre>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
