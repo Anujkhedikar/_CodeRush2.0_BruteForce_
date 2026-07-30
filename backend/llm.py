@@ -19,16 +19,14 @@ OPENAI_API_BASE = os.getenv(
     "https://models.github.ai/inference" if OPENAI_API_PROVIDER == "github" else "https://api.openai.com/v1",
 )
 
+if not OPENAI_API_KEY:
+    raise RuntimeError("OPENAI_API_KEY is not set in environment variables.")
 
-def _validate_config() -> None:
-    if not OPENAI_API_KEY:
-        raise RuntimeError("OPENAI_API_KEY is not set in environment variables.")
+if OPENAI_API_PROVIDER == "openai" and openai is None:
+    raise RuntimeError("openai package is required for OPENAI_API_PROVIDER=openai.")
 
-    if OPENAI_API_PROVIDER == "openai" and openai is None:
-        raise RuntimeError("openai package is required for OPENAI_API_PROVIDER=openai.")
-
-    if OPENAI_API_PROVIDER == "openai":
-        openai.api_key = OPENAI_API_KEY
+if OPENAI_API_PROVIDER == "openai":
+    openai.api_key = OPENAI_API_KEY
 
 
 def _github_model_id(model: str) -> str:
@@ -38,8 +36,6 @@ def _github_model_id(model: str) -> str:
 
 
 def call_openai(messages: List[Dict], model: str = OPENAI_MODEL, temperature: float = 0.3) -> Dict:
-    _validate_config()
-
     if OPENAI_API_PROVIDER == "github":
         url = f"{OPENAI_API_BASE.rstrip('/')}/chat/completions"
         headers = {
