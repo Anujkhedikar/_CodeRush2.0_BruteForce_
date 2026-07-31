@@ -1,27 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CodeMentor AI</title>
     <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
+</head>
+<body>
     <div class="container">
-      <h1>CodeMentor AI</h1>
-      <p>Ask for code explanations, reviews, or generation.</p>
-      <form id="mentorForm">
-        <select id="mode">
-          <option value="explain">Explain</option>
-          <option value="review">Review</option>
-          <option value="generate">Generate</option>
-        </select>
-        <input id="language" type="text" value="English" />
-        <textarea id="inputText" rows="6" placeholder="Enter your code or question..."></textarea>
-        <button type="submit">Ask Mentor</button>
-      </form>
-      <pre id="result"></pre>
+        <header>
+            <h1>CodeMentor AI</h1>
+            <p>Your single-agent programming mentor for learning and improving code.</p>
+        </header>
+
+        <section class="controls">
+            <label>
+                Programming Language
+                <select id="languageSelect">
+                    <option value="python">Python</option>
+                    <option value="java">Java</option>
+                    <option value="c">C</option>
+                    <option value="cpp">C++</option>
+                </select>
+            </label>
+
+            <label>
+                Feature
+                <select id="modeSelect">
+                    <option value="explain">Explain Code</option>
+                    <option value="error_finder">Find Errors</option>
+                    <option value="generate">Generate Code</option>
+                    <option value="optimize">Optimize Code</option>
+                </select>
+            </label>
+        </section>
+
+        <section class="editor">
+            <label for="inputText">Code or prompt</label>
+            <textarea id="inputText" placeholder="Paste code or type your request here..."></textarea>
+        </section>
+
+        <button id="submitButton" type="button">Submit</button>
+
+        <section class="output">
+            <h2>AI Response</h2>
+            <div id="outputText" class="response-content">
+                <p class="placeholder">Your result will appear here.</p>
+            </div>
+        </section>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="script.js"></script>
-  </body>
+</body>
 </html>

@@ -1,43 +1,218 @@
+/* style.css */
 body {
-  font-family: Arial, sans-serif;
-  background: #f5f7fb;
-  color: #222;
-  margin: 0;
-  padding: 2rem;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f5f7fb;
+    color: #222;
 }
 
 .container {
-  max-width: 800px;
-  margin: 0 auto;
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    max-width: 900px;
+    margin: 32px auto;
+    padding: 24px;
+    background: white;
+    border-radius: 18px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.08);
 }
 
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+header h1 {
+    margin: 0 0 8px;
+    font-size: 2.25rem;
 }
 
-input, textarea, select, button {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
+header p {
+    margin: 0;
+    color: #555;
+    line-height: 1.6;
+}
+
+.controls {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    margin-top: 24px;
+}
+
+label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+select,
+textarea {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid #d7dde9;
+    font-size: 1rem;
+    color: #222;
+    background: #fafbff;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.editor {
+    margin-top: 22px;
+}
+
+#inputText {
+    min-height: 260px;
 }
 
 button {
-  background: #2563eb;
-  color: white;
-  cursor: pointer;
+    margin-top: 18px;
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
-pre {
-  white-space: pre-wrap;
-  background: #f8fafc;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-top: 1rem;
+button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 26px rgba(59, 130, 246, 0.22);
+}
+
+.output {
+    margin-top: 24px;
+}
+
+.output h2 {
+    margin: 0 0 12px;
+    font-size: 1.2rem;
+}
+
+#outputText {
+    min-height: 260px;
+    padding: 22px 24px;
+    background: #f8fafc;
+    border: 1px solid #dce2f0;
+    border-radius: 14px;
+    color: #1f2937;
+    overflow-x: auto;
+    line-height: 1.7;
+}
+
+.response-content.plain-text {
+    white-space: pre-wrap;
+}
+
+.response-content.markdown-body {
+    font-size: 0.98rem;
+}
+
+.response-content.markdown-body > :first-child {
+    margin-top: 0;
+}
+
+.response-content.markdown-body > :last-child {
+    margin-bottom: 0;
+}
+
+.response-content.markdown-body h1,
+.response-content.markdown-body h2,
+.response-content.markdown-body h3,
+.response-content.markdown-body h4 {
+    color: #111827;
+    font-weight: 700;
+    line-height: 1.35;
+    margin: 1.5rem 0 0.75rem;
+}
+
+.response-content.markdown-body h1 {
+    font-size: 1.45rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.response-content.markdown-body h2 {
+    font-size: 1.25rem;
+}
+
+.response-content.markdown-body h3 {
+    font-size: 1.08rem;
+    color: #2563eb;
+}
+
+.response-content.markdown-body p,
+.response-content.markdown-body ul,
+.response-content.markdown-body ol {
+    margin: 0.75rem 0;
+}
+
+.response-content.markdown-body ul,
+.response-content.markdown-body ol {
+    padding-left: 1.4rem;
+}
+
+.response-content.markdown-body li {
+    margin: 0.35rem 0;
+}
+
+.response-content.markdown-body strong {
+    color: #111827;
+    font-weight: 700;
+}
+
+.response-content.markdown-body code {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.92em;
+    background: #eef2ff;
+    color: #4338ca;
+    padding: 0.15rem 0.4rem;
+    border-radius: 6px;
+}
+
+.response-content.markdown-body pre {
+    margin: 1rem 0;
+    padding: 16px;
+    background: #111827;
+    color: #e5e7eb;
+    border-radius: 12px;
+    overflow-x: auto;
+    line-height: 1.55;
+}
+
+.response-content.markdown-body pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.9rem;
+}
+
+.response-content.markdown-body hr {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 1.25rem 0;
+}
+
+.response-content.markdown-body blockquote {
+    margin: 1rem 0;
+    padding: 0.75rem 1rem;
+    border-left: 4px solid #93c5fd;
+    background: #eff6ff;
+    color: #374151;
+}
+
+.response-content .placeholder {
+    margin: 0;
+    color: #6b7280;
+}
+
+@media (max-width: 640px) {
+    .container {
+        margin: 16px;
+        padding: 18px;
+    }
+
+    button {
+        padding: 14px;
+    }
 }

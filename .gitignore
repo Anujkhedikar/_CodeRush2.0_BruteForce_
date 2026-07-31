@@ -1,11 +1,16 @@
-# Environment files
+# Environment files — never commit secrets
 .env
 .env.*
+backend/.env
 !.env.example
+
+# Local test output
+backend/test_results.json
 
 # Python virtual environments
 venv/
 .venv/
+backend/venv/
 __pycache__/
 *.py[cod]
 
