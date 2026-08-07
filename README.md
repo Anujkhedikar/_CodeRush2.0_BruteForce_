@@ -16,6 +16,7 @@ The purpose of this project is to demonstrate how a single AI assistant can act 
 - identify possible bugs and logic issues
 - generate code from user requirements
 - improve existing code for clarity and performance
+- analyze a whole repository (structure, overview, improvements, and an error report)
 
 The app is intentionally simple so that beginners can understand the flow between the user interface, backend logic, and AI model.
 
@@ -229,8 +230,16 @@ The supported modes are:
 - error_finder
 - generate
 - optimize
+- repo_report
 
 Each mode has a tailored prompt so the AI behaves differently depending on the task.
+
+The `repo_report` mode has an extra piece of logic in `backend/repo.py`, a local
+scanner that walks the repository folder and builds a compact snapshot for the AI:
+a file tree, detected languages, key configuration files, source contents
+(size-capped to fit the model context), and quick local static checks (Python
+`SyntaxError`s and invalid JSON) so the AI can report on them. Sensitive files
+such as `.env` or `*.pem` are never read.
 
 #### backend/tools.py
 This file contains a small helper for extracting the assistant content from the API response.
@@ -391,6 +400,14 @@ Read input from a file instead of typing it:
 
 ```bash
 python -m backend.cli --mode optimize --language python --input @backend/mentor.py
+```
+
+Analyze a whole repository (no language is asked in this mode, since a repo can
+contain many languages; the path can be typed or picked from a folder dialog by
+pressing Enter):
+
+```bash
+python -m backend.cli --mode repo_report --repo C:\path\to\your\project
 ```
 
 ---

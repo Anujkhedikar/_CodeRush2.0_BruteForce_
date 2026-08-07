@@ -18,24 +18,36 @@ class CodeMentor:
         self.modes = MODE_PROMPTS
 
     def format_request(self, mode: str, language: str, content: str) -> str:
-        """Create a user request string including the selected programming language."""
-        language_name = LANGUAGE_LABELS.get(language, language.capitalize())
-        return (
-            f"Language: {language_name}\n"
-            f"Feature: {mode.replace('_', ' ').title()}\n\n"
-            f"User Input:\n{content.strip()}"
-        )
+        """Create a user request string including the selected programming language.
+
+        The language line is omitted when no language is supplied, which is the
+        case for the repo_report mode (a repository can contain many languages).
+        """
+        lines: list[str] = []
+        if language:
+            language_name = LANGUAGE_LABELS.get(language, language.capitalize())
+            lines.append(f"Language: {language_name}")
+        lines.append(f"Feature: {mode.replace('_', ' ').title()}")
+        lines.append("")
+        lines.append(f"User Input:\n{content.strip()}")
+        return "\n".join(lines)
 
     def get_prompt(self, mode: str) -> str:
         """Return the system prompt for the requested mode."""
         return self.modes.get(mode, self.modes["explain"])
 
-    def mentor_response(self, mode: str, language: str, content: str) -> Dict[str, Any]:
+    def mentor_response(
+        self,
+        mode: str,
+        language: str,
+        content: str,
+        max_tokens: int = 900,
+    ) -> Dict[str, Any]:
         """Return the assistant response from the AI model."""
         system_prompt = self.get_prompt(mode)
         user_request = self.format_request(mode, language, content)
         messages = build_message(system_prompt, user_request)
-        response = call_openai(messages)
+        response = call_openai(messages, max_tokens=max_tokens)
         response_text = response["choices"][0]["message"]["content"].strip()
 
         return {

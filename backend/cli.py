@@ -10,9 +10,14 @@ from typing import List, Optional
 try:
     from .mentor import CodeMentor
     from .prompts import LANGUAGE_LABELS, MODE_DESCRIPTIONS, MODE_PROMPTS
+    from .repo import build_repo_summary, scan_repo
 except ImportError:  # pragma: no cover - fallback for direct execution
     from mentor import CodeMentor
     from prompts import LANGUAGE_LABELS, MODE_DESCRIPTIONS, MODE_PROMPTS
+    from repo import build_repo_summary, scan_repo
+
+REPO_MODE = "repo_report"
+REPO_MAX_TOKENS = 4096
 
 
 def _prompt_choice(prompt: str, options: List[str], default: Optional[str] = None) -> str:
@@ -66,32 +71,85 @@ def _resolve_input(text: str) -> Optional[str]:
     return text
 
 
-def _ask_input() -> str:
-    print("Now enter your code or query (press Enter twice to finish, or use @path/to/file):")
-    lines: List[str] = []
-    while True:
-        try:
-            line = input()
-        except EOFError:
-            break
-        stripped = line.strip()
-        if stripped.startswith("@"):
-            content = _resolve_input(line)
-            if content is not None:
-                return content
-            continue
-        if not stripped and lines:
-            break
-        lines.append(line)
-    return "\n".join(lines).strip()
+def _pick_folder_dialog() -> Optional[str]:
+    """Open a native folder picker dialog, if tkinter is available."""
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+    except ImportError:
+        print("Folder dialog unavailable (tkinter is not installed).")
+        return None
+    try:
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        path = filedialog.askdirectory(title="Select the repository folder")
+        root.destroy()
+        return path or None
+    except Exception as exc:
+        print(f"Folder dialog failed: {exc}")
+        return None
+
+
+def _ask_repo_path() -> Optional[str]:
+    print("Enter the path of the repository folder to analyze.")
+    print("Tip: press Enter to open a folder picker dialog instead.")
+    raw = input("Repository path: ").strip().strip('"').strip("'")
+    if not raw:
+        picked = _pick_folder_dialog()
+        if picked:
+            return picked
+        print("No folder selected via the dialog.")
+        return None
+    return os.path.abspath(os.path.expandvars(os.path.expanduser(raw)))
+
+
+def _run_repo_report(repo_path: Optional[str]) -> int:
+    path = repo_path or _ask_repo_path()
+    if not path:
+        print("No repository path provided. Nothing to do.")
+        return 1
+    if not os.path.isdir(path):
+        print(f"'{path}' is not a folder.", file=sys.stderr)
+        return 1
+
+    print(f"Scanning repository: {path}")
+    try:
+        summary = build_repo_summary(scan_repo(path))
+    except OSError as exc:
+        print(f"Failed to scan repository: {exc}", file=sys.stderr)
+        return 1
+
+    mentor = CodeMentor()
+    print(f"Mode: {REPO_MODE} | Repository: {path}")
+    print("Generating report...\n")
+
+    try:
+        result = mentor.mentor_response(REPO_MODE, "", summary, max_tokens=REPO_MAX_TOKENS)
+    except RuntimeError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+    print(result["result"])
+    return 0
 
 
 def run_cli(
     mode: Optional[str],
     language: Optional[str],
     input_text: Optional[str],
+    repo_path: Optional[str] = None,
 ) -> int:
     mode = mode or _ask_mode()
+
+    if mode == REPO_MODE:
+        if language:
+            print(
+                f"Note: '--language {language}' is ignored for {REPO_MODE} mode, "
+                "because a repository can contain many languages."
+            )
+        return _run_repo_report(repo_path)
+
     language = language or _ask_language()
     input_text = input_text or _ask_input()
     input_text = _resolve_input(input_text)
@@ -114,6 +172,26 @@ def run_cli(
     return 0
 
 
+def _ask_input() -> str:
+    print("Now enter your code or query (press Enter twice to finish, or use @path/to/file):")
+    lines: List[str] = []
+    while True:
+        try:
+            line = input()
+        except EOFError:
+            break
+        stripped = line.strip()
+        if stripped.startswith("@"):
+            content = _resolve_input(line)
+            if content is not None:
+                return content
+            continue
+        if not stripped and lines:
+            break
+        lines.append(line)
+    return "\n".join(lines).strip()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="CodeMentor AI - programming mentor from the terminal",
@@ -130,18 +208,24 @@ def main() -> None:
     parser.add_argument(
         "--language",
         choices=list(LANGUAGE_LABELS.keys()),
-        help="Programming language (interactive menu if omitted)",
+        help="Programming language (interactive menu if omitted; "
+             "not used with --mode repo_report)",
     )
     parser.add_argument(
         "--input",
         help="Code or prompt text (prompted interactively if omitted)",
+    )
+    parser.add_argument(
+        "--repo",
+        help="Path to a repository folder to analyze (used with --mode repo_report; "
+             "prompted interactively if omitted)",
     )
     args = parser.parse_args()
 
     if args.provider:
         os.environ["LLM_PROVIDER"] = args.provider
 
-    sys.exit(run_cli(args.mode, args.language, args.input))
+    sys.exit(run_cli(args.mode, args.language, args.input, args.repo))
 
 
 if __name__ == "__main__":

@@ -155,13 +155,14 @@ def call_openai(
     messages: List[Dict[str, str]],
     model: Optional[str] = None,
     temperature: float = 0.3,
+    max_tokens: int = 900,
 ) -> Dict[str, Any]:
     """Send a chat completion request to the active provider."""
     # Keeping the function name 'call_openai' so mentor.py doesn't break
     provider = get_provider()
     if model:
         provider.model = model
-    return provider.chat(messages, temperature=temperature)
+    return provider.chat(messages, temperature=temperature, max_tokens=max_tokens)
 
 
 def build_message(system_prompt: str, user_input: str) -> List[Dict[str, str]]:

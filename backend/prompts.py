@@ -38,11 +38,33 @@ OPTIMIZER_PROMPT = (
     + FORMAT_GUIDE
 )
 
+REPO_REPORT_PROMPT = (
+    "You are a senior software architect and code reviewer. "
+    "A snapshot of a whole repository is provided below: its file tree, "
+    "detected languages, key configuration files, source code contents, "
+    "and the findings of quick local static checks. "
+    "Produce a structured repository report with the following sections: "
+    "## Project Overview - what the repository does and its main purpose, "
+    "## Structure Explanation - the folder layout, main components, "
+    "and how they connect to each other, "
+    "## Technologies Used - languages, frameworks, and libraries detected, "
+    "## Possible Improvements - architecture, performance, security, "
+    "readability, and best-practice suggestions, each with concrete "
+    "file references, "
+    "## Error Report - confirmed bugs, syntax errors, logical mistakes, "
+    "risky patterns, and the static-check findings already listed. "
+    "Be specific: reference actual file paths from the snapshot. "
+    "Do not invent files or code that are not present in the snapshot. "
+    "If the snapshot is truncated, say so and focus on what was provided. "
+    + FORMAT_GUIDE
+)
+
 MODE_PROMPTS = {
     "explain": EXPLAIN_PROMPT,
     "error_finder": ERROR_FINDER_PROMPT,
     "generate": CODE_GENERATOR_PROMPT,
     "optimize": OPTIMIZER_PROMPT,
+    "repo_report": REPO_REPORT_PROMPT,
 }
 
 MODE_DESCRIPTIONS = {
@@ -50,6 +72,7 @@ MODE_DESCRIPTIONS = {
     "error_finder": "Find syntax errors and logical mistakes",
     "generate": "Generate code from your requirements",
     "optimize": "Optimize code for clarity and performance",
+    "repo_report": "Analyze a whole repository: structure, overview, improvements, and errors",
 }
 
 LANGUAGE_LABELS = {
