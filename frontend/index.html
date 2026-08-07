@@ -7,48 +7,53 @@
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <div class="container">
-        <header>
+    <div class="app">
+        <aside class="sidebar">
             <h1>CodeMentor AI</h1>
-            <p>Your single-agent programming mentor for learning and improving code.</p>
-        </header>
+            <button id="newSessionBtn" type="button" class="new-session">+ New Session</button>
+            <h2 class="sidebar-title">Session History</h2>
+            <div id="sessionList" class="session-list"></div>
+        </aside>
 
-        <section class="controls">
-            <label id="languageLabel">
-                Programming Language
-                <select id="languageSelect">
-                    <option value="python">Python</option>
-                    <option value="java">Java</option>
-                    <option value="c">C</option>
-                    <option value="cpp">C++</option>
-                </select>
-            </label>
-
-            <label>
-                Feature
-                <select id="modeSelect">
-                    <option value="explain">Explain Code</option>
-                    <option value="error_finder">Find Errors</option>
-                    <option value="generate">Generate Code</option>
-                    <option value="optimize">Optimize Code</option>
-                    <option value="repo_report">Analyze Repository</option>
-                </select>
-            </label>
-        </section>
-
-        <section class="editor">
-            <label for="inputText">Code or prompt</label>
-            <textarea id="inputText" placeholder="Paste code or type your request here..."></textarea>
-        </section>
-
-        <button id="submitButton" type="button">Submit</button>
-
-        <section class="output">
-            <h2>AI Response</h2>
-            <div id="outputText" class="response-content">
-                <p class="placeholder">Your result will appear here.</p>
+        <main class="main">
+            <div id="chat" class="chat">
+                <div class="empty-state" id="emptyState">
+                    <h2>Welcome to CodeMentor AI</h2>
+                    <p>Ask the mentor to explain code, find errors, generate code, optimize
+                        existing programs, or analyze a whole repository. Every query records
+                        its token usage and context size.</p>
+                </div>
             </div>
-        </section>
+
+            <section class="controls">
+                <label id="languageLabel">
+                    Programming Language
+                    <select id="languageSelect">
+                        <option value="python">Python</option>
+                        <option value="java">Java</option>
+                        <option value="c">C</option>
+                        <option value="cpp">C++</option>
+                    </select>
+                </label>
+
+                <label>
+                    Feature
+                    <select id="modeSelect">
+                        <option value="explain">Explain Code</option>
+                        <option value="error_finder">Find Errors</option>
+                        <option value="generate">Generate Code</option>
+                        <option value="optimize">Optimize Code</option>
+                        <option value="repo_report">Analyze Repository</option>
+                    </select>
+                </label>
+            </section>
+
+            <section class="editor">
+                <textarea id="inputText" placeholder="Paste code or type your request here..."></textarea>
+            </section>
+
+            <button id="submitButton" type="button">Send</button>
+        </main>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="script.js"></script>

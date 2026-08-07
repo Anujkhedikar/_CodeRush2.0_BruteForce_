@@ -7,6 +7,9 @@ backend/.env
 # Local test output
 backend/test_results.json
 
+# Local session history (query + token usage per turn)
+backend/sessions.json
+
 # Python virtual environments
 venv/
 .venv/

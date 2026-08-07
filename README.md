@@ -241,6 +241,19 @@ a file tree, detected languages, key configuration files, source contents
 `SyntaxError`s and invalid JSON) so the AI can report on them. Sensitive files
 such as `.env` or `*.pem` are never read.
 
+#### backend/session.py
+This file stores the conversation history of every session (CLI and web) in
+`backend/sessions.json` (git-ignored).
+
+Why it exists:
+- every turn is recorded with metadata: the query, mode, language, model,
+  provider, token usage (`prompt_tokens` / `completion_tokens` / `total_tokens`),
+  context size (how many previous turns were in the request), duration, and
+  timestamp
+- the web app shows this history in a sidebar, and each answer displays its
+  token usage and context info under the response
+- sessions are trimmed (oldest first) and capped so the file stays small
+
 #### backend/tools.py
 This file contains a small helper for extracting the assistant content from the API response.
 
@@ -410,11 +423,28 @@ pressing Enter):
 python -m backend.cli --mode repo_report --repo C:\path\to\your\project
 ```
 
-The CLI is conversational: after every answer it asks "Do you want to continue
-this conversation?" If you say yes, the previous chat history is carried into
-the next round (for modes 1-4 it re-asks mode/language/input). In repo_report
-mode, the repository is scanned once and follow-up questions keep the
-repository snapshot in context.
+The CLI is conversational: after every answer it asks "Continue the chat?" If you
+say yes, the previous chat history is carried into the next round (for modes 1-4
+it re-asks mode/language/input). In repo_report mode, the repository is scanned
+once and follow-up questions keep the repository snapshot in context.
+
+Slash commands work at any prompt (also at the "Continue the chat?" question):
+
+```text
+/help              show all commands
+/history           list all sessions (id, turns, total tokens, preview)
+/view <id>         show a session's conversation with per-turn token usage,
+                   context size, model, and duration
+/resume <id>       continue a previous session (its history becomes the chat context)
+/back              return to the chat prompt
+/new               start a new session
+/delete <id>       delete a session
+/exit              quit the CLI
+```
+
+Example: type `/history`, note a session id, then `/view 3` to inspect it, and
+`/resume 3` to keep chatting with its history loaded. All sessions (CLI and web)
+are stored in `backend/sessions.json`.
 
 ---
 
@@ -426,9 +456,20 @@ The frontend sends a JSON body like this:
 {
   "mode": "explain",
   "language": "python",
-  "input_text": "print('Hello')"
+  "input_text": "print('Hello')",
+  "session_id": ""
 }
 ```
+
+`session_id` is optional: empty creates a new session, and passing an existing
+id continues that conversation with history. The response includes the
+`session_id` plus per-turn metadata (`usage`, `model`, `provider`,
+`duration_ms`, `context_turns`).
+
+History endpoints:
+- `GET /sessions` - compact list of all sessions (preview, turn count, total tokens)
+- `GET /sessions/{id}` - full conversation with per-turn metadata
+- `DELETE /sessions/{id}` - remove a session
 
 The backend returns a JSON object containing the result field with the AI-generated response.
 

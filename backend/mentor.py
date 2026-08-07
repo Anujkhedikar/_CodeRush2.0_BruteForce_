@@ -1,13 +1,15 @@
 # mentor.py
 # Routes requests to the correct prompt mode for the single-agent mentor.
 
+import os
+import time
 from typing import Any, Dict, List
 
 try:
-    from .llm import build_message, call_openai
+    from .llm import build_message, call_openai, get_provider
     from .prompts import LANGUAGE_LABELS, MODE_PROMPTS
 except ImportError:  # pragma: no cover - fallback for direct execution
-    from llm import build_message, call_openai
+    from llm import build_message, call_openai, get_provider
     from prompts import LANGUAGE_LABELS, MODE_PROMPTS
 
 
@@ -48,7 +50,8 @@ class CodeMentor:
         user_request = self.format_request(mode, language, content)
         messages = build_message(system_prompt, user_request)
         response = call_openai(messages, max_tokens=max_tokens)
-        response_text = response["choices"][0]["message"]["content"].strip()
+        message = response["choices"][0].get("message") or {}
+        response_text = (message.get("content") or "").strip()
 
         return {
             "mode": mode,
@@ -69,8 +72,43 @@ class CodeMentor:
         history is a list of {'role': 'user'|'assistant', 'content': ...} turns
         from previous rounds, so the conversation keeps its flow.
         """
+        return self.ask(system_prompt, history, user_input, max_tokens=max_tokens)["content"]
+
+    def ask(
+        self,
+        system_prompt: str,
+        history: List[Dict[str, str]],
+        user_input: str,
+        max_tokens: int = 900,
+    ) -> Dict[str, Any]:
+        """Send a history-aware message and return content plus usage details.
+
+        The returned dict includes the assistant text ('content'), the provider
+        token usage ('usage': prompt/completion/total tokens), the model name,
+        and the request duration, so callers can record context/memory stats.
+        """
         messages = [{"role": "system", "content": system_prompt}]
         messages.extend(history)
         messages.append({"role": "user", "content": user_input})
+
+        started = time.perf_counter()
         response = call_openai(messages, max_tokens=max_tokens)
-        return response["choices"][0]["message"]["content"].strip()
+        duration_ms = (time.perf_counter() - started) * 1000
+
+        text = ""
+        if response["choices"]:
+            message = response["choices"][0].get("message") or {}
+            text = (message.get("content") or "").strip()
+        try:
+            provider = get_provider().name
+        except RuntimeError:
+            provider = os.getenv("LLM_PROVIDER", "groq")
+
+        return {
+            "content": text,
+            "usage": response.get("usage") or {},
+            "model": response.get("model") or "",
+            "provider": provider,
+            "duration_ms": round(duration_ms, 1),
+            "context_turns": len(history) // 2,
+        }
