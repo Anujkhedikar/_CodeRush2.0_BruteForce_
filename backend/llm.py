@@ -23,11 +23,20 @@ load_dotenv(PROJECT_ROOT / ".env", override=True)
 # New providers are added here, no other code changes needed.
 PROVIDERS = {
     "groq": {
+        "label": "Groq",
         "env_api_key": "GROQ_API_KEY",
         "env_api_base": "GROQ_API_BASE",
         "env_model": "GROQ_MODEL",
         "default_api_base": "https://api.groq.com/openai/v1",
         "default_model": "llama-3.3-70b-versatile",
+    },
+    "openrouter": {
+        "label": "OpenRouter",
+        "env_api_key": "OPENROUTER_API_KEY",
+        "env_api_base": "OPENROUTER_API_BASE",
+        "env_model": "OPENROUTER_MODEL",
+        "default_api_base": "https://openrouter.ai/api/v1",
+        "default_model": "openrouter/auto",
     },
 }
 

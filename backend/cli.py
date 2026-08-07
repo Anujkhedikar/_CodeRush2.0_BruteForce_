@@ -3,6 +3,7 @@
 # Shares the same core (CodeMentor) as the web app, just with a terminal front end.
 
 import argparse
+import os
 import sys
 from typing import List, Optional
 
@@ -118,6 +119,10 @@ def main() -> None:
         description="CodeMentor AI - programming mentor from the terminal",
     )
     parser.add_argument(
+        "--provider",
+        help="LLM provider (default: LLM_PROVIDER env var or groq)",
+    )
+    parser.add_argument(
         "--mode",
         choices=list(MODE_PROMPTS.keys()),
         help="Task mode (interactive menu if omitted)",
@@ -132,6 +137,9 @@ def main() -> None:
         help="Code or prompt text (prompted interactively if omitted)",
     )
     args = parser.parse_args()
+
+    if args.provider:
+        os.environ["LLM_PROVIDER"] = args.provider
 
     sys.exit(run_cli(args.mode, args.language, args.input))
 

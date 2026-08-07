@@ -285,16 +285,25 @@ A template file is available at .env.example.
 
 ```env
 LLM_PROVIDER=groq
+
+# Groq
 GROQ_API_KEY=your_api_key_here
 GROQ_API_BASE=https://api.groq.com/openai/v1
 GROQ_MODEL=llama-3.3-70b-versatile
+
+# OpenRouter
+OPENROUTER_API_KEY=your_api_key_here
+OPENROUTER_API_BASE=https://openrouter.ai/api/v1
+OPENROUTER_MODEL=openrouter/auto
 ```
 
 These values are loaded by the backend using python-dotenv.
 
 `LLM_PROVIDER` selects which backend the unified provider layer uses.
 Each provider has its own `*_API_KEY`, `*_API_BASE`, and `*_MODEL` variables
-(e.g. `GROQ_API_KEY` for `groq`).
+(e.g. `GROQ_API_KEY` for `groq`, `OPENROUTER_API_KEY` for `openrouter`).
+The launcher (`python run.py`) also asks which provider to use at startup;
+that choice only applies to the current session.
 
 > Important: the AI provider needs a valid API key in order for the app to return real responses.
 
@@ -337,10 +346,13 @@ Run the unified launcher from the project root:
 python run.py
 ```
 
-It asks whether you want the web app or the CLI:
+It asks two questions:
 
-- choose **1. Web app (GUI)** to start the FastAPI server and open the browser automatically
-- choose **2. CLI (terminal)** to open a new terminal window with the command-line mentor
+1. which front end you want: **1. Web app (GUI)** or **2. CLI (terminal)**
+2. which LLM provider to use: **1. Groq** (default) or **2. OpenRouter**
+
+- **Web app (GUI)** starts the FastAPI server and opens the browser automatically
+- **CLI (terminal)** opens a new terminal window with the command-line mentor
 
 ### 5. Open the frontend
 
