@@ -1,7 +1,7 @@
 # mentor.py
 # Routes requests to the correct prompt mode for the single-agent mentor.
 
-from typing import Dict, Any
+from typing import Any, Dict, List
 
 try:
     from .llm import build_message, call_openai
@@ -56,3 +56,21 @@ class CodeMentor:
             "content": content,
             "result": response_text,
         }
+
+    def chat_response(
+        self,
+        system_prompt: str,
+        history: List[Dict[str, str]],
+        user_input: str,
+        max_tokens: int = 900,
+    ) -> str:
+        """Send a history-aware message and return only the assistant text.
+
+        history is a list of {'role': 'user'|'assistant', 'content': ...} turns
+        from previous rounds, so the conversation keeps its flow.
+        """
+        messages = [{"role": "system", "content": system_prompt}]
+        messages.extend(history)
+        messages.append({"role": "user", "content": user_input})
+        response = call_openai(messages, max_tokens=max_tokens)
+        return response["choices"][0]["message"]["content"].strip()

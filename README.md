@@ -410,6 +410,12 @@ pressing Enter):
 python -m backend.cli --mode repo_report --repo C:\path\to\your\project
 ```
 
+The CLI is conversational: after every answer it asks "Do you want to continue
+this conversation?" If you say yes, the previous chat history is carried into
+the next round (for modes 1-4 it re-asks mode/language/input). In repo_report
+mode, the repository is scanned once and follow-up questions keep the
+repository snapshot in context.
+
 ---
 
 ## 10. Example Request

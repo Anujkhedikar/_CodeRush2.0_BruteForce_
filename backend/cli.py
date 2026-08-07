@@ -5,7 +5,7 @@
 import argparse
 import os
 import sys
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 try:
     from .mentor import CodeMentor
@@ -18,6 +18,33 @@ except ImportError:  # pragma: no cover - fallback for direct execution
 
 REPO_MODE = "repo_report"
 REPO_MAX_TOKENS = 4096
+DEFAULT_MAX_TOKENS = 900
+MAX_HISTORY_MESSAGES = 12
+
+
+def _ask_yes_no(prompt: str, default: bool = False) -> bool:
+    hint = "[Y/n]" if default else "[y/N]"
+    while True:
+        raw = input(f"{prompt} {hint}: ").strip().lower()
+        if not raw:
+            return default
+        if raw in {"y", "yes"}:
+            return True
+        if raw in {"n", "no"}:
+            return False
+        print("Please answer y or n.")
+
+
+def _ask_continue() -> bool:
+    print()
+    return _ask_yes_no("Do you want to continue this conversation?")
+
+
+def _trim_history(history: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    """Keep the first turn (e.g. the repository snapshot) and the last turns."""
+    if len(history) <= MAX_HISTORY_MESSAGES:
+        return history
+    return history[:1] + history[-(MAX_HISTORY_MESSAGES - 1):]
 
 
 def _prompt_choice(prompt: str, options: List[str], default: Optional[str] = None) -> str:
@@ -104,76 +131,107 @@ def _ask_repo_path() -> Optional[str]:
     return os.path.abspath(os.path.expandvars(os.path.expanduser(raw)))
 
 
-def _run_repo_report(repo_path: Optional[str]) -> int:
-    path = repo_path or _ask_repo_path()
-    if not path:
-        print("No repository path provided. Nothing to do.")
-        return 1
-    if not os.path.isdir(path):
-        print(f"'{path}' is not a folder.", file=sys.stderr)
-        return 1
-
-    print(f"Scanning repository: {path}")
-    try:
-        summary = build_repo_summary(scan_repo(path))
-    except OSError as exc:
-        print(f"Failed to scan repository: {exc}", file=sys.stderr)
-        return 1
-
-    mentor = CodeMentor()
-    print(f"Mode: {REPO_MODE} | Repository: {path}")
-    print("Generating report...\n")
-
-    try:
-        result = mentor.mentor_response(REPO_MODE, "", summary, max_tokens=REPO_MAX_TOKENS)
-    except RuntimeError as exc:
-        print(f"Error: {exc}", file=sys.stderr)
-        return 1
-
-    print(result["result"])
-    return 0
-
-
 def run_cli(
     mode: Optional[str],
     language: Optional[str],
     input_text: Optional[str],
     repo_path: Optional[str] = None,
 ) -> int:
+    """Interactive conversational loop.
+
+    Modes 1-4 re-ask mode/language/input on each round, carrying the previous
+    chat history into the new round to create a flow. In repo_report mode the
+    repository is scanned once, then the user can ask follow-up questions
+    about it until they choose to stop.
+    """
+    mentor = CodeMentor()
+    history: List[Dict[str, str]] = []
+    first_round = True
+    repo_context: Optional[str] = None
+    repo_path_used: Optional[str] = None
     mode = mode or _ask_mode()
 
-    if mode == REPO_MODE:
-        if language:
-            print(
-                f"Note: '--language {language}' is ignored for {REPO_MODE} mode, "
-                "because a repository can contain many languages."
+    while True:
+        if mode != REPO_MODE and not first_round:
+            mode = _ask_mode()
+
+        if mode == REPO_MODE:
+            if repo_context is None:
+                if language:
+                    print(
+                        f"Note: '--language {language}' is ignored for {REPO_MODE} mode, "
+                        "because a repository can contain many languages."
+                    )
+                path = repo_path_used or repo_path or _ask_repo_path()
+                if not path:
+                    print("No repository path provided. Nothing to do.")
+                    return 1
+                if not os.path.isdir(path):
+                    print(f"'{path}' is not a folder.", file=sys.stderr)
+                    return 1
+                print(f"Scanning repository: {path}")
+                try:
+                    summary = build_repo_summary(scan_repo(path))
+                except OSError as exc:
+                    print(f"Failed to scan repository: {exc}", file=sys.stderr)
+                    return 1
+                repo_context = summary
+                repo_path_used = path
+                user_message = summary
+                max_tokens = REPO_MAX_TOKENS
+                print(f"Mode: {REPO_MODE} | Repository: {path}")
+                print("Generating report...\n")
+            else:
+                user_message = _ask_input(
+                    "Ask a follow-up question about this repository "
+                    "(press Enter twice to finish):"
+                )
+                if not user_message:
+                    print("No question provided. Nothing to do.")
+                    return 1
+                max_tokens = DEFAULT_MAX_TOKENS
+                print("Generating response...\n")
+        else:
+            if not first_round:
+                language = _ask_language()
+            else:
+                language = language or _ask_language()
+            if first_round and input_text is not None:
+                user_message = _resolve_input(input_text)
+            else:
+                user_message = _resolve_input(_ask_input())
+            if not user_message:
+                print("No input provided. Nothing to do.")
+                return 1
+            max_tokens = DEFAULT_MAX_TOKENS
+            print(f"Mode: {mode} | Language: {language}")
+            print("Generating response...\n")
+
+        try:
+            result = mentor.chat_response(
+                mentor.get_prompt(mode),
+                _trim_history(history),
+                user_message,
+                max_tokens=max_tokens,
             )
-        return _run_repo_report(repo_path)
+        except RuntimeError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
 
-    language = language or _ask_language()
-    input_text = input_text or _ask_input()
-    input_text = _resolve_input(input_text)
+        print(result)
 
-    if not input_text:
-        print("No input provided. Nothing to do.")
-        return 1
+        history.append({"role": "user", "content": user_message})
+        history.append({"role": "assistant", "content": result})
+        first_round = False
 
-    mentor = CodeMentor()
-    print(f"Mode: {mode} | Language: {language}")
-    print("Generating response...\n")
-
-    try:
-        result = mentor.mentor_response(mode, language, input_text)
-    except RuntimeError as exc:
-        print(f"Error: {exc}", file=sys.stderr)
-        return 1
-
-    print(result["result"])
-    return 0
+        if not _ask_continue():
+            return 0
 
 
-def _ask_input() -> str:
-    print("Now enter your code or query (press Enter twice to finish, or use @path/to/file):")
+def _ask_input(
+    prompt: str = "Now enter your code or query (press Enter twice to finish, or use @path/to/file):",
+) -> str:
+    print(prompt)
     lines: List[str] = []
     while True:
         try:
