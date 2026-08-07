@@ -45,6 +45,13 @@ MODE_PROMPTS = {
     "optimize": OPTIMIZER_PROMPT,
 }
 
+MODE_DESCRIPTIONS = {
+    "explain": "Explain code line by line in simple language",
+    "error_finder": "Find syntax errors and logical mistakes",
+    "generate": "Generate code from your requirements",
+    "optimize": "Optimize code for clarity and performance",
+}
+
 LANGUAGE_LABELS = {
     "python": "Python",
     "java": "Java",

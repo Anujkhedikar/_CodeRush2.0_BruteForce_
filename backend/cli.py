@@ -1,0 +1,140 @@
+# cli.py
+# Command-line interface for CodeMentor AI.
+# Shares the same core (CodeMentor) as the web app, just with a terminal front end.
+
+import argparse
+import sys
+from typing import List, Optional
+
+try:
+    from .mentor import CodeMentor
+    from .prompts import LANGUAGE_LABELS, MODE_DESCRIPTIONS, MODE_PROMPTS
+except ImportError:  # pragma: no cover - fallback for direct execution
+    from mentor import CodeMentor
+    from prompts import LANGUAGE_LABELS, MODE_DESCRIPTIONS, MODE_PROMPTS
+
+
+def _prompt_choice(prompt: str, options: List[str], default: Optional[str] = None) -> str:
+    while True:
+        raw = input(prompt).strip().lower()
+        if not raw and default:
+            return default
+        if raw in options:
+            return raw
+        if raw.isdigit() and 1 <= int(raw) <= len(options):
+            return options[int(raw) - 1]
+        print(f"Invalid choice '{raw}'. Pick a number from 1-{len(options)} or one of: {', '.join(options)}")
+
+
+def _ask_mode() -> str:
+    modes = list(MODE_PROMPTS.keys())
+    print("Select a mode (what do you want the mentor to do?):")
+    for index, mode in enumerate(modes, start=1):
+        description = MODE_DESCRIPTIONS.get(mode, "")
+        print(f"  {index}. {mode} - {description}")
+    mode = _prompt_choice(f"Enter your choice (1-{len(modes)}) [1]: ", modes, default="explain")
+    print(f"You selected: {mode}\n")
+    return mode
+
+
+def _ask_language() -> str:
+    languages = list(LANGUAGE_LABELS.keys())
+    print("Select a programming language:")
+    for index, lang in enumerate(languages, start=1):
+        print(f"  {index}. {LANGUAGE_LABELS.get(lang, lang)}")
+    language = _prompt_choice(
+        f"Enter your choice (1-{len(languages)}) [1]: ", languages, default="python"
+    )
+    print(f"You selected: {LANGUAGE_LABELS.get(language, language)}\n")
+    return language
+
+
+def _read_file(path: str) -> Optional[str]:
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            return handle.read().strip()
+    except OSError as exc:
+        print(f"Could not read file '{path}': {exc}")
+        return None
+
+
+def _resolve_input(text: str) -> Optional[str]:
+    stripped = text.strip()
+    if stripped.startswith("@"):
+        return _read_file(stripped[1:].strip())
+    return text
+
+
+def _ask_input() -> str:
+    print("Now enter your code or query (press Enter twice to finish, or use @path/to/file):")
+    lines: List[str] = []
+    while True:
+        try:
+            line = input()
+        except EOFError:
+            break
+        stripped = line.strip()
+        if stripped.startswith("@"):
+            content = _resolve_input(line)
+            if content is not None:
+                return content
+            continue
+        if not stripped and lines:
+            break
+        lines.append(line)
+    return "\n".join(lines).strip()
+
+
+def run_cli(
+    mode: Optional[str],
+    language: Optional[str],
+    input_text: Optional[str],
+) -> int:
+    mode = mode or _ask_mode()
+    language = language or _ask_language()
+    input_text = input_text or _ask_input()
+    input_text = _resolve_input(input_text)
+
+    if not input_text:
+        print("No input provided. Nothing to do.")
+        return 1
+
+    mentor = CodeMentor()
+    print(f"Mode: {mode} | Language: {language}")
+    print("Generating response...\n")
+
+    try:
+        result = mentor.mentor_response(mode, language, input_text)
+    except RuntimeError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+    print(result["result"])
+    return 0
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="CodeMentor AI - programming mentor from the terminal",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=list(MODE_PROMPTS.keys()),
+        help="Task mode (interactive menu if omitted)",
+    )
+    parser.add_argument(
+        "--language",
+        choices=list(LANGUAGE_LABELS.keys()),
+        help="Programming language (interactive menu if omitted)",
+    )
+    parser.add_argument(
+        "--input",
+        help="Code or prompt text (prompted interactively if omitted)",
+    )
+    args = parser.parse_args()
+
+    sys.exit(run_cli(args.mode, args.language, args.input))
+
+
+if __name__ == "__main__":
+    main()
