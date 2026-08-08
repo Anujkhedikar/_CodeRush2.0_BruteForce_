@@ -115,6 +115,32 @@ def total_tokens(session: Dict[str, Any]) -> int:
     )
 
 
+def get_memory(session_id: str) -> Optional[Dict[str, Any]]:
+    """The tiered-memory summary of a session, or None.
+
+    Memory is a condensed paragraph of the turns that were trimmed from the
+    active context; it travels with every request so the agent still knows
+    what was discussed even after the raw turns are gone.
+    """
+    session = get_session(session_id)
+    return session.get("memory") if session else None
+
+
+def set_memory(session_id: str, summary: str, turns_summarized: int) -> bool:
+    """Persist the memory summary (and how many turns it covers)."""
+    with _lock:
+        session = get_session(session_id)
+        if not session:
+            return False
+        session["memory"] = {
+            "summary": summary,
+            "turns_summarized": turns_summarized,
+            "updated_at": time.time(),
+        }
+        _save()
+        return True
+
+
 def list_sessions() -> List[Dict[str, Any]]:
     """Compact session summaries for the sidebar (no full message contents)."""
     sessions = _load()["sessions"]

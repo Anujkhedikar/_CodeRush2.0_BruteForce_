@@ -16,6 +16,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 try:
+    from .context import build_context
+    from .memory import build_memory_summary
     from .mentor import CodeMentor
     from .observability import overview
     from .repo import build_repo_summary, scan_repo
@@ -23,14 +25,17 @@ try:
         append_turn,
         create_session,
         delete_session,
+        get_memory,
         get_session,
         has_repo_snapshot,
         history,
         list_sessions,
-        trim_history,
+        set_memory,
     )
     from .verify import syntax_issues, verify_text
 except ImportError:  # pragma: no cover - fallback for direct execution
+    from context import build_context
+    from memory import build_memory_summary
     from mentor import CodeMentor
     from observability import overview
     from repo import build_repo_summary, scan_repo
@@ -38,11 +43,12 @@ except ImportError:  # pragma: no cover - fallback for direct execution
         append_turn,
         create_session,
         delete_session,
+        get_memory,
         get_session,
         has_repo_snapshot,
         history,
         list_sessions,
-        trim_history,
+        set_memory,
     )
     from verify import syntax_issues, verify_text
 
@@ -116,7 +122,8 @@ class MentorRequest(BaseModel):
 def _record(session_id: str, role: str, content: str, mode: str, language: str,
             stats: Optional[Dict[str, Any]] = None,
             verification: Optional[Dict[str, Any]] = None,
-            input_check: Optional[List[Dict[str, Any]]] = None) -> None:
+            input_check: Optional[List[Dict[str, Any]]] = None,
+            context_info: Optional[Dict[str, Any]] = None) -> None:
     turn: Dict[str, Any] = {
         "role": role,
         "content": content,
@@ -128,6 +135,9 @@ def _record(session_id: str, role: str, content: str, mode: str, language: str,
         turn["verification"] = verification
     if input_check:
         turn["input_check"] = input_check
+    if context_info:
+        turn["context"] = context_info
+        turn["context_turns"] = context_info.get("context_turns", 0)
     if stats:
         turn.update(
             {
@@ -140,6 +150,24 @@ def _record(session_id: str, role: str, content: str, mode: str, language: str,
             }
         )
     append_turn(session_id, turn)
+
+
+def _fold_memory(session_id: str, ctx_info: Dict[str, Any]) -> None:
+    """Fold turns trimmed from the context into the session memory summary."""
+    if not ctx_info.get("trimmed_turns"):
+        return
+    existing = get_memory(session_id) or {}
+    summary = build_memory_summary(
+        mentor,
+        ctx_info.get("trimmed_messages", []),
+        existing_summary=existing.get("summary", ""),
+    )
+    if summary and summary != existing.get("summary", ""):
+        set_memory(
+            session_id,
+            summary,
+            int(existing.get("turns_summarized") or 0) + ctx_info["trimmed_turns"],
+        )
 
 
 def _repo_report(request: MentorRequest, session_id: str) -> Dict[str, Any]:
@@ -167,16 +195,26 @@ def _repo_report(request: MentorRequest, session_id: str) -> Dict[str, Any]:
 
     _record(session_id, "user", user_message, REPO_MODE, "")
     try:
+        history_part, ctx_info = build_context(
+            mentor.get_prompt(REPO_MODE),
+            history(session_id)[:-1],
+            user_message,
+            memory=get_memory(session_id),
+        )
+        if ctx_info["note"]:
+            user_message = ctx_info["note"] + "\n\n" + user_message
         stats = mentor.ask(
             mentor.get_prompt(REPO_MODE),
-            trim_history(history(session_id)[:-1], MAX_HISTORY_MESSAGES),
+            history_part,
             user_message,
             max_tokens=max_tokens,
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
-    _record(session_id, "assistant", stats["content"], REPO_MODE, "", stats)
+    _fold_memory(session_id, ctx_info)
+    _record(session_id, "assistant", stats["content"], REPO_MODE, "", stats,
+            context_info=ctx_info)
     return {
         "session_id": session_id,
         "mode": REPO_MODE,
@@ -187,6 +225,7 @@ def _repo_report(request: MentorRequest, session_id: str) -> Dict[str, Any]:
         "provider": stats.get("provider"),
         "duration_ms": stats.get("duration_ms"),
         "context_turns": stats.get("context_turns"),
+        "context": ctx_info,
     }
 
 
@@ -216,9 +255,17 @@ async def mentor_agent(request: MentorRequest) -> Dict[str, Any]:
             input_check=input_check)
     prompt_message = mentor.format_request(request.mode, effective_language, user_message)
     try:
+        history_part, ctx_info = build_context(
+            mentor.get_prompt(request.mode),
+            history(session_id)[:-1],
+            prompt_message,
+            memory=get_memory(session_id),
+        )
+        if ctx_info["note"]:
+            prompt_message = ctx_info["note"] + "\n\n" + prompt_message
         stats = mentor.ask(
             mentor.get_prompt(request.mode),
-            trim_history(history(session_id)[:-1], MAX_HISTORY_MESSAGES),
+            history_part,
             prompt_message,
             max_tokens=DEFAULT_MAX_TOKENS,
         )
@@ -231,8 +278,9 @@ async def mentor_agent(request: MentorRequest) -> Dict[str, Any]:
         if check["status"] != "no_code":
             verification = check
 
+    _fold_memory(session_id, ctx_info)
     _record(session_id, "assistant", stats["content"], request.mode, effective_language, stats,
-            verification=verification)
+            verification=verification, context_info=ctx_info)
     return {
         "session_id": session_id,
         "mode": request.mode,
@@ -243,6 +291,7 @@ async def mentor_agent(request: MentorRequest) -> Dict[str, Any]:
         "provider": stats.get("provider"),
         "duration_ms": stats.get("duration_ms"),
         "context_turns": stats.get("context_turns"),
+        "context": ctx_info,
         "verification": verification,
         "input_check": input_check,
     }

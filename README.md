@@ -254,6 +254,42 @@ Why it exists:
   token usage and context info under the response
 - sessions are trimmed (oldest first) and capped so the file stays small
 
+#### backend/context.py
+This file implements the context manager: every request is built against a
+token budget instead of a fixed message count.
+
+Why it exists:
+- tokens are estimated (~4 characters per token) for the system prompt, the
+  repository snapshot, prior turns, and the current message
+- the repository snapshot is always kept; other turns are kept most-recent
+  first, in whole user/assistant pairs, until the budget is reached
+- when older turns are trimmed, the model is told how many ("Note: N earlier
+  turn(s) were trimmed ..."), so it knows the conversation is not lossless
+- the budget is configurable via `CONTEXT_BUDGET_TOKENS` (default 12000)
+- each turn records what was kept vs trimmed (`context` in sessions.json),
+  shown in the CLI `/view` and under web answers
+
+#### backend/memory.py
+This file implements tiered memory: when older turns are trimmed out of the
+context budget, they are folded into a condensed session memory summary
+instead of being lost.
+
+Why it exists:
+- three tiers: the active context (most recent turns, full fidelity), the
+  memory summary (what was trimmed, condensed), and sessions.json (the full
+  archive of every turn with usage metadata)
+- the summary is LLM-condensed by `CodeMentor.summarize` (merge-only, no
+  duplication); set `MEMORY_SUMMARIZATION=0` to skip the extra call
+- if the summarization call fails or returns nothing, a deterministic
+  extractive summary (bullet previews of each trimmed user message) is used,
+  so memory still works without the API
+- the summary is always kept in the context (counted against the budget) and
+  rides with every request, so the agent keeps knowing what was discussed
+  after the raw turns are gone
+- stored per session as `memory` in sessions.json; the CLI prints a line when
+  turns are folded and `/view` shows the summary and how many turns it covers;
+  web answers show a "memory: N turn(s) summarized" chip
+
 #### backend/observability.py
 This file computes usage analytics from the stored sessions: estimated cost,
 token totals, breakdowns by mode/provider/model, a 14-day daily series, and
@@ -344,6 +380,13 @@ GROQ_MODEL=llama-3.3-70b-versatile
 OPENROUTER_API_KEY=your_api_key_here
 OPENROUTER_API_BASE=https://openrouter.ai/api/v1
 OPENROUTER_MODEL=openrouter/auto
+
+# Context manager (optional): token budget per request
+CONTEXT_BUDGET_TOKENS=12000
+
+# Tiered memory (optional): 0 to skip the LLM summarization call and use the
+# deterministic extractive summary for trimmed turns
+MEMORY_SUMMARIZATION=1
 ```
 
 These values are loaded by the backend using python-dotenv.

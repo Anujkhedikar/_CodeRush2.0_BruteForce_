@@ -9,11 +9,11 @@ from typing import Any, Dict, List, Optional
 try:
     from .llm import build_message, call_openai, get_provider
     from .observability import estimate_cost
-    from .prompts import LANGUAGE_LABELS, MODE_PROMPTS
+    from .prompts import LANGUAGE_LABELS, MODE_PROMPTS, SUMMARIZE_PROMPT
 except ImportError:  # pragma: no cover - fallback for direct execution
     from llm import build_message, call_openai, get_provider
     from observability import estimate_cost
-    from prompts import LANGUAGE_LABELS, MODE_PROMPTS
+    from prompts import LANGUAGE_LABELS, MODE_PROMPTS, SUMMARIZE_PROMPT
 
 # Mention patterns checked in order; 'c++'/'cpp' must precede 'c' so a
 # standalone word 'c' never swallows them.
@@ -97,6 +97,25 @@ class CodeMentor:
         from previous rounds, so the conversation keeps its flow.
         """
         return self.ask(system_prompt, history, user_input, max_tokens=max_tokens)["content"]
+
+    def summarize(self, text: str, existing: str = "") -> str:
+        """Condense conversation turns into a memory summary (tier 2).
+
+        Called when turns are trimmed from the context budget; the summary is
+        stored on the session and included in later requests so the agent
+        keeps remembering what was discussed after the raw turns are gone.
+        """
+        if existing.strip():
+            content = f"Existing memory:\n{existing}\n\nNew conversation turns to fold in:\n{text}"
+        else:
+            content = text
+        messages = [
+            {"role": "system", "content": SUMMARIZE_PROMPT},
+            {"role": "user", "content": content},
+        ]
+        response = call_openai(messages, max_tokens=250)
+        message = response["choices"][0].get("message") or {}
+        return (message.get("content") or "").strip()
 
     def ask(
         self,

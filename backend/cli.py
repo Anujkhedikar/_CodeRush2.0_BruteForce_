@@ -9,6 +9,8 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 
 try:
+    from .context import build_context
+    from .memory import build_memory_summary
     from .mentor import CodeMentor
     from .observability import estimate_cost, overview
     from .prompts import LANGUAGE_LABELS, MODE_DESCRIPTIONS, MODE_PROMPTS
@@ -17,14 +19,17 @@ try:
         append_turn,
         create_session,
         delete_session,
+        get_memory,
         get_session,
         has_repo_snapshot,
         history,
         list_sessions,
-        trim_history,
+        set_memory,
     )
     from .verify import syntax_issues, verify_text
 except ImportError:  # pragma: no cover - fallback for direct execution
+    from context import build_context
+    from memory import build_memory_summary
     from mentor import CodeMentor
     from observability import estimate_cost, overview
     from prompts import LANGUAGE_LABELS, MODE_DESCRIPTIONS, MODE_PROMPTS
@@ -33,11 +38,12 @@ except ImportError:  # pragma: no cover - fallback for direct execution
         append_turn,
         create_session,
         delete_session,
+        get_memory,
         get_session,
         has_repo_snapshot,
         history,
         list_sessions,
-        trim_history,
+        set_memory,
     )
     from verify import syntax_issues, verify_text
 
@@ -109,6 +115,12 @@ def _cmd_view(session_id: str) -> None:
         print(f"No session with id '{session_id}'.")
         return
     print(f"\n=== Session {session_id} (started {_fmt_time(session['created_at'])}) ===")
+    memory = session.get("memory")
+    if memory and memory.get("summary"):
+        print(
+            f"Memory: {_shorten(memory['summary'], 160)} "
+            f"[summarizes {memory.get('turns_summarized', 0)} turn(s)]"
+        )
     for turn in session.get("turns", []):
         role = "USER" if turn["role"] == "user" else "AI  "
         content = turn.get("content", "")
@@ -136,6 +148,12 @@ def _cmd_view(session_id: str) -> None:
                 issues = sum(len(b.get("issues") or []) for b in verification["blocks"])
                 status = "OK" if verification["status"] == "ok" else f"{issues} issue(s)"
                 print(f"      [verification: {status}]")
+            context = turn.get("context") or {}
+            if context.get("trimmed_turns"):
+                print(
+                    f"      [context: {context['kept_turns']} turn(s) kept, "
+                    f"{context['trimmed_turns']} trimmed | budget {context['budget_tokens']} tokens]"
+                )
         if turn["role"] == "user" and turn.get("input_check"):
             print(f"      [input syntax check: {len(turn['input_check'])} issue(s)]")
     print("Use /back to return to the chat, /resume <id> to continue this session.")
@@ -517,9 +535,17 @@ def run_cli(
             else mentor.format_request(mode, effective_language, user_message)
         )
         try:
+            history_part, ctx_info = build_context(
+                mentor.get_prompt(mode),
+                history(state["session_id"]),
+                prompt_message,
+                memory=get_memory(state["session_id"]),
+            )
+            if ctx_info["note"]:
+                prompt_message = ctx_info["note"] + "\n\n" + prompt_message
             stats = mentor.ask(
                 mentor.get_prompt(mode),
-                trim_history(history(state["session_id"]), MAX_HISTORY_MESSAGES),
+                history_part,
                 prompt_message,
                 max_tokens=max_tokens,
             )
@@ -539,6 +565,24 @@ def run_cli(
             else:
                 verification = None
 
+        if ctx_info["trimmed_turns"] > 0:
+            existing = get_memory(state["session_id"]) or {}
+            summary = build_memory_summary(
+                mentor,
+                ctx_info["trimmed_messages"],
+                existing_summary=existing.get("summary", ""),
+            )
+            if summary and summary != existing.get("summary", ""):
+                set_memory(
+                    state["session_id"],
+                    summary,
+                    int(existing.get("turns_summarized") or 0) + ctx_info["trimmed_turns"],
+                )
+                print(
+                    f"Memory: {ctx_info['trimmed_turns']} trimmed turn(s) "
+                    "folded into the session memory summary."
+                )
+
         user_turn = {
             "role": "user",
             "content": user_message,
@@ -556,7 +600,8 @@ def run_cli(
             "model": stats.get("model"),
             "provider": stats.get("provider"),
             "usage": stats.get("usage"),
-            "context_turns": stats.get("context_turns"),
+            "context_turns": ctx_info["context_turns"],
+            "context": ctx_info,
             "duration_ms": stats.get("duration_ms"),
             "cost": stats.get("cost"),
             "timestamp": time.time(),

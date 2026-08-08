@@ -7,6 +7,15 @@ FORMAT_GUIDE = (
     "and fenced code blocks for code. Keep paragraphs short and scannable."
 )
 
+SUMMARIZE_PROMPT = (
+    "You manage the tiered memory of an AI coding mentor. "
+    "Write a concise bullet summary of the conversation for the mentor's "
+    "long-term memory. Keep: what the user asked, the language and mode used, "
+    "code topics and decisions, and any unfinished work. If a previous memory "
+    "is provided, merge the new turns into it without duplicating. "
+    "Plain text, no code fences, under 200 words."
+)
+
 EXPLAIN_PROMPT = (
     "You are an experienced programming mentor. "
     "Explain the following code line by line in simple language for a college student. "

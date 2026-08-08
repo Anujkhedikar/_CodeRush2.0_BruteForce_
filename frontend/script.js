@@ -95,6 +95,12 @@ function addAssistantMessage(content, stats, timestamp) {
         const contextTurns = stats.context_turns !== undefined
             ? `${formatNumber(stats.context_turns)} turn(s) context`
             : '';
+        const trimmed = stats.context && stats.context.trimmed_turns
+            ? `${stats.context.trimmed_turns} trimmed from context`
+            : '';
+        const memory = stats.context && stats.context.memory_turns
+            ? `memory: ${formatNumber(stats.context.memory_turns)} turn(s) summarized`
+            : '';
         const tokens = usage.total_tokens !== undefined
             ? `tokens: ${formatNumber(usage.prompt_tokens)} in / ${formatNumber(usage.completion_tokens)} out (${formatNumber(usage.total_tokens)} total)`
             : 'tokens: n/a';
@@ -105,7 +111,7 @@ function addAssistantMessage(content, stats, timestamp) {
         const duration = stats.duration_ms
             ? `\u00B7 ${(stats.duration_ms / 1000).toFixed(1)}s`
             : '';
-        meta.textContent = [contextTurns, tokens, model, cost, duration]
+        meta.textContent = [contextTurns, trimmed, memory, tokens, model, cost, duration]
             .filter(Boolean)
             .join(' \u00B7 ');
     }
