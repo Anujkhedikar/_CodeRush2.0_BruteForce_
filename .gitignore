@@ -1,0 +1,22 @@
+# Environment files — never commit secrets
+.env
+.env.*
+backend/.env
+!.env.example
+
+# Local test output
+backend/test_results.json
+
+# Local session history (query + token usage per turn)
+backend/sessions.json
+
+# Python virtual environments
+venv/
+.venv/
+backend/venv/
+__pycache__/
+*.py[cod]
+
+# OS files
+.DS_Store
+Thumbs.db

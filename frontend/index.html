@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CodeMentor AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="brand">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 32 32" fill="none">
+                        <circle cx="16" cy="16" r="14.5" stroke="currentColor" stroke-width="1.4"/>
+                        <path d="M11 17.2l3.4 3.4L21.5 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </span>
+                <div class="brand-text">
+                    <h1>CodeMentor<span>AI</span></h1>
+                    <p class="brand-tag">A senior dev, on call</p>
+                </div>
+            </div>
+
+            <button id="newSessionBtn" type="button" class="new-session">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1V13M1 7H13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                New Session
+            </button>
+
+            <div class="sidebar-section sidebar-scroll">
+                <h2 class="sidebar-title">Session History</h2>
+                <div id="sessionList" class="session-list"></div>
+            </div>
+
+            <div class="sidebar-section usage-section">
+                <h2 class="sidebar-title">Usage Analytics</h2>
+                <div id="usagePanel" class="usage-panel">
+                    <div class="usage-empty" id="usageEmpty">No usage recorded yet.</div>
+                    <div class="usage-totals" id="usageTotals" hidden></div>
+
+                    <div class="usage-label">By feature</div>
+                    <div id="usageModes" class="usage-group"></div>
+
+                    <div class="usage-days-title">Tokens &middot; last 14 days</div>
+                    <div id="usageDays" class="usage-days"></div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main">
+            <div id="chat" class="chat">
+                <div class="empty-state" id="emptyState">
+                    <span class="empty-glyph" aria-hidden="true">
+                        <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
+                            <circle cx="16" cy="16" r="14.5" stroke="currentColor" stroke-width="1.2"/>
+                            <path d="M11 17.2l3.4 3.4L21.5 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <h2>Welcome to CodeMentor AI</h2>
+                    <p>Ask the mentor to explain code, find errors, generate code, optimize
+                        existing programs, or analyze a whole repository. Every query records
+                        its token usage and context size.</p>
+                    <div class="empty-modes">
+                        <span>Explain</span>
+                        <span>Find Errors</span>
+                        <span>Generate</span>
+                        <span>Optimize</span>
+                        <span>Analyze Repo</span>
+                    </div>
+                </div>
+            </div>
+
+            <section class="composer">
+                <div class="composer-controls">
+                    <label id="languageLabel" class="control">
+                        <span class="control-label">Programming Language</span>
+                        <span class="control-field">
+                            <select id="languageSelect">
+                                <option value="python">Python</option>
+                                <option value="java">Java</option>
+                                <option value="c">C</option>
+                                <option value="cpp">C++</option>
+                            </select>
+                        </span>
+                    </label>
+
+                    <label class="control">
+                        <span class="control-label">Feature</span>
+                        <span class="control-field">
+                            <select id="modeSelect">
+                                <option value="explain">Explain Code</option>
+                                <option value="error_finder">Find Errors</option>
+                                <option value="generate">Generate Code</option>
+                                <option value="optimize">Optimize Code</option>
+                                <option value="repo_report">Analyze Repository</option>
+                            </select>
+                        </span>
+                    </label>
+                </div>
+
+                <div class="composer-input">
+                    <span class="prompt-glyph" aria-hidden="true">&gt;</span>
+                    <textarea id="inputText" placeholder="Paste code or type your request here..." rows="1"></textarea>
+                </div>
+
+                <div class="composer-footer">
+                    <span class="composer-hint"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> to send</span>
+                    <button id="submitButton" type="button" class="send-btn">
+                        Send
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 7H12M12 7L7.5 2.5M12 7L7.5 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
