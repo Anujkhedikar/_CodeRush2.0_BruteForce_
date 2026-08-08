@@ -2,6 +2,8 @@
 // CodeMentor AI web app: chat-style UI with session history.
 // Shows each query together with its token usage, context size, model,
 // duration, and timestamp, so the user can inspect memory usage per turn.
+// API contract is unchanged from the original build: POST /mentor,
+// GET/DELETE /sessions(/:id), GET /stats.
 
 const submitButton = document.getElementById('submitButton');
 const newSessionBtn = document.getElementById('newSessionBtn');
@@ -19,6 +21,14 @@ const MENTOR_URLS = {
     mentor: '/mentor',
     sessions: '/sessions',
     stats: '/stats',
+};
+
+const MODE_LABELS = {
+    explain: 'Explain Code',
+    error_finder: 'Find Errors',
+    generate: 'Generate Code',
+    optimize: 'Optimize Code',
+    repo_report: 'Analyze Repository',
 };
 
 let currentSessionId = '';
@@ -46,23 +56,39 @@ function formatCost(cost) {
     return cost >= 0.01 ? `$${Number(cost).toFixed(3)}` : `$${Number(cost).toFixed(4)}`;
 }
 
+function modeLabel(mode) {
+    return MODE_LABELS[mode] || (mode ? mode.replace('_', ' ').toUpperCase() : '');
+}
+
+// Build one small "chip" for the ledger-style meta line under a message.
+function chip(text, variant) {
+    const span = document.createElement('span');
+    span.className = variant ? `chip chip-${variant}` : 'chip';
+    span.textContent = text;
+    return span;
+}
+
 function appendInputCheck(wrapper, issues) {
     if (!wrapper || !issues || !issues.length) return;
     const meta = wrapper.querySelector('.msg-meta');
     if (!meta) return;
-    const note = ` \u00B7 \u26A0 syntax: ${issues.length} issue(s) found in input`;
-    meta.textContent += meta.textContent ? note : note.trim();
+    meta.appendChild(chip(`\u26A0 syntax: ${issues.length} issue(s) found in input`, 'warn'));
+}
+
+function autoGrow() {
+    inputText.style.height = 'auto';
+    inputText.style.height = `${Math.min(inputText.scrollHeight, 240)}px`;
 }
 
 function addUserMessage(content, mode, language, timestamp, inputCheck) {
     const wrapper = document.createElement('div');
     wrapper.className = 'msg msg-user';
 
-    const chip = document.createElement('div');
-    chip.className = 'msg-chip';
-    const label = mode ? mode.replace('_', ' ').toUpperCase() : '';
-    const lang = language && mode !== REPO_MODE ? language : '';
-    chip.textContent = [label, lang].filter(Boolean).join(' \u00B7 ');
+    const chipLine = document.createElement('div');
+    chipLine.className = 'msg-chip';
+    const label = mode ? modeLabel(mode) : '';
+    const lang = language && mode !== REPO_MODE ? language.toUpperCase() : '';
+    chipLine.textContent = [label, lang].filter(Boolean).join('  \u00B7  ');
 
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble user-bubble';
@@ -70,9 +96,9 @@ function addUserMessage(content, mode, language, timestamp, inputCheck) {
 
     const meta = document.createElement('div');
     meta.className = 'msg-meta';
-    meta.textContent = formatTime(timestamp);
+    if (timestamp) meta.appendChild(chip(formatTime(timestamp)));
 
-    wrapper.appendChild(chip);
+    wrapper.appendChild(chipLine);
     wrapper.appendChild(bubble);
     wrapper.appendChild(meta);
     appendInputCheck(wrapper, inputCheck);
@@ -90,42 +116,39 @@ function addAssistantMessage(content, stats, timestamp) {
 
     const meta = document.createElement('div');
     meta.className = 'msg-meta';
+
     if (stats) {
         const usage = stats.usage || {};
-        const contextTurns = stats.context_turns !== undefined
-            ? `${formatNumber(stats.context_turns)} turn(s) context`
-            : '';
-        const trimmed = stats.context && stats.context.trimmed_turns
-            ? `${stats.context.trimmed_turns} trimmed from context`
-            : '';
-        const memory = stats.context && stats.context.memory_turns
-            ? `memory: ${formatNumber(stats.context.memory_turns)} turn(s) summarized`
-            : '';
-        const tokens = usage.total_tokens !== undefined
-            ? `tokens: ${formatNumber(usage.prompt_tokens)} in / ${formatNumber(usage.completion_tokens)} out (${formatNumber(usage.total_tokens)} total)`
-            : 'tokens: n/a';
-        const model = stats.model ? `\u00B7 ${stats.model}` : '';
-        const cost = stats.cost !== undefined
-            ? `\u00B7 est. ${formatCost(stats.cost)}`
-            : '';
-        const duration = stats.duration_ms
-            ? `\u00B7 ${(stats.duration_ms / 1000).toFixed(1)}s`
-            : '';
-        meta.textContent = [contextTurns, trimmed, memory, tokens, model, cost, duration]
-            .filter(Boolean)
-            .join(' \u00B7 ');
+        if (stats.context_turns !== undefined) {
+            meta.appendChild(chip(`${formatNumber(stats.context_turns)} turn(s) context`));
+        }
+        if (stats.context && stats.context.trimmed_turns) {
+            meta.appendChild(chip(`${stats.context.trimmed_turns} trimmed from context`));
+        }
+        if (stats.context && stats.context.memory_turns) {
+            meta.appendChild(chip(`memory: ${formatNumber(stats.context.memory_turns)} turn(s) summarized`));
+        }
+        meta.appendChild(chip(
+            usage.total_tokens !== undefined
+                ? `tokens: ${formatNumber(usage.prompt_tokens)} in / ${formatNumber(usage.completion_tokens)} out (${formatNumber(usage.total_tokens)} total)`
+                : 'tokens: n/a'
+        ));
+        if (stats.model) meta.appendChild(chip(stats.model));
+        if (stats.cost !== undefined) meta.appendChild(chip(`est. ${formatCost(stats.cost)}`));
+        if (stats.duration_ms) meta.appendChild(chip(`${(stats.duration_ms / 1000).toFixed(1)}s`));
     }
+
     if (stats && stats.verification && stats.verification.blocks) {
         const issues = stats.verification.blocks.reduce(
             (sum, block) => sum + (block.issues ? block.issues.length : 0), 0);
-        const verdict = stats.verification.status === 'ok'
+        const ok = stats.verification.status === 'ok';
+        const verdict = ok
             ? `\u2713 verified (${stats.verification.blocks.length} block(s))`
             : `\u26A0 verify: ${issues} issue(s) in ${stats.verification.blocks.length} block(s)`;
-        meta.textContent += meta.textContent ? ` \u00B7 ${verdict}` : verdict;
+        meta.appendChild(chip(verdict, ok ? 'ok' : 'warn'));
     }
-    if (timestamp) {
-        meta.textContent += meta.textContent ? ` \u00B7 ${formatTime(timestamp)}` : formatTime(timestamp);
-    }
+
+    if (timestamp) meta.appendChild(chip(formatTime(timestamp)));
 
     wrapper.appendChild(bubble);
     wrapper.appendChild(meta);
@@ -165,8 +188,8 @@ function setLoading() {
     wrapper.className = 'msg msg-assistant';
     wrapper.id = 'loadingMsg';
     const bubble = document.createElement('div');
-    bubble.className = 'msg-bubble assistant-bubble';
-    bubble.textContent = 'Processing...';
+    bubble.className = 'msg-bubble assistant-bubble loading-bubble';
+    bubble.innerHTML = '<span class="loading-dots"><span></span><span></span><span></span></span> Processing...';
     wrapper.appendChild(bubble);
     chat.appendChild(wrapper);
     scrollToBottom();
@@ -226,6 +249,7 @@ async function openSession(sessionId) {
         currentSessionId = session.id;
         renderTurns(session.turns || []);
         inputText.value = '';
+        autoGrow();
         loadSessions();
     } catch (error) {
         addErrorMessage(`Could not load session: ${error.message}`);
@@ -253,13 +277,19 @@ function newSession() {
     chat.innerHTML = '';
     emptyState.style.display = '';
     inputText.value = '';
+    autoGrow();
     loadSessions();
+    inputText.focus();
 }
 
 // ---------- usage analytics ----------
 
 function renderUsageBars(container, rows, barFor) {
     container.innerHTML = '';
+    if (!rows.length) {
+        container.innerHTML = '<div class="usage-empty-inline">No feature usage yet.</div>';
+        return;
+    }
     const max = Math.max(...rows.map((row) => barFor(row)), 1);
     for (const row of rows) {
         const line = document.createElement('div');
@@ -267,7 +297,7 @@ function renderUsageBars(container, rows, barFor) {
 
         const name = document.createElement('div');
         name.className = 'usage-name';
-        name.textContent = row.name;
+        name.textContent = MODE_LABELS[row.name] || row.name;
 
         const track = document.createElement('div');
         track.className = 'usage-track';
@@ -301,9 +331,22 @@ async function loadStats() {
         }
         empty.style.display = 'none';
         totalsBox.hidden = false;
-        totalsBox.textContent =
-            `${formatNumber(totals.sessions)} session(s) \u00B7 ${formatNumber(totals.turns)} turn(s) ` +
-            `\u00B7 ${formatNumber(totals.total_tokens)} tokens \u00B7 est. ${formatCost(totals.cost)}`;
+        totalsBox.innerHTML = '';
+        const rows = [
+            [`${formatNumber(totals.sessions)} session(s)`, `${formatNumber(totals.turns)} turn(s)`],
+            [`${formatNumber(totals.total_tokens)} tokens`, `est. ${formatCost(totals.cost)}`],
+        ];
+        rows.forEach((pair) => {
+            const line = document.createElement('div');
+            line.className = 'usage-totals-row';
+            pair.forEach((text) => {
+                const cell = document.createElement('span');
+                cell.textContent = text;
+                line.appendChild(cell);
+            });
+            totalsBox.appendChild(line);
+        });
+
         renderUsageBars(document.getElementById('usageModes'), data.by_mode || [], (row) => row.tokens);
 
         const days = document.getElementById('usageDays');
@@ -351,8 +394,9 @@ async function submitRequest() {
     busy = true;
     submitButton.disabled = true;
     inputText.value = '';
+    autoGrow();
     emptyState.style.display = 'none';
-    const userMsgEl = addUserMessage(content, payload.mode, payload.language);
+    const userMsgEl = addUserMessage(content, payload.mode, payload.language, Date.now() / 1000);
     setLoading();
 
     try {
@@ -398,6 +442,7 @@ modeSelect.addEventListener('change', updateModeUI);
 updateModeUI();
 
 submitButton.addEventListener('click', submitRequest);
+inputText.addEventListener('input', autoGrow);
 inputText.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
         event.preventDefault();
@@ -408,3 +453,4 @@ newSessionBtn.addEventListener('click', newSession);
 
 loadSessions();
 loadStats();
+autoGrow();
