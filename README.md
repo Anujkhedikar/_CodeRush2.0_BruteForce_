@@ -254,6 +254,33 @@ Why it exists:
   token usage and context info under the response
 - sessions are trimmed (oldest first) and capped so the file stays small
 
+#### backend/observability.py
+This file computes usage analytics from the stored sessions: estimated cost,
+token totals, breakdowns by mode/provider/model, a 14-day daily series, and
+the most expensive sessions.
+
+Why it exists:
+- cost is estimated from public list prices per 1M tokens (unknown models
+  fall back to a conservative rate), so no provider bill is needed
+- the CLI `/stats` command and the web app's "Usage Analytics" panel render
+  the same aggregates from `GET /stats`
+
+#### backend/verify.py
+This file implements the verification-first layer: code blocks emitted by the
+model are checked locally before the answer is shown.
+
+Why it exists:
+- Python blocks get an AST syntax check plus an undefined-name analysis
+  (nothing is ever executed)
+- JavaScript/TypeScript blocks are checked with `node --check` when Node is
+  installed, otherwise with a delimiter-balance heuristic
+- other languages (C, C++, Java, ...) use the delimiter-balance heuristic
+- in generate/error_finder/optimize mode the verdict is printed under the
+  answer (CLI), shown as a chip under the answer (web), and stored in the
+  session turn
+- in error_finder mode the user's input gets a quick syntax pre-check before
+  the model is even called
+
 #### backend/tools.py
 This file contains a small helper for extracting the assistant content from the API response.
 

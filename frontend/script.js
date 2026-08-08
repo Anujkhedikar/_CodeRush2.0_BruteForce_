@@ -46,7 +46,15 @@ function formatCost(cost) {
     return cost >= 0.01 ? `$${Number(cost).toFixed(3)}` : `$${Number(cost).toFixed(4)}`;
 }
 
-function addUserMessage(content, mode, language, timestamp) {
+function appendInputCheck(wrapper, issues) {
+    if (!wrapper || !issues || !issues.length) return;
+    const meta = wrapper.querySelector('.msg-meta');
+    if (!meta) return;
+    const note = ` \u00B7 \u26A0 syntax: ${issues.length} issue(s) found in input`;
+    meta.textContent += meta.textContent ? note : note.trim();
+}
+
+function addUserMessage(content, mode, language, timestamp, inputCheck) {
     const wrapper = document.createElement('div');
     wrapper.className = 'msg msg-user';
 
@@ -67,7 +75,9 @@ function addUserMessage(content, mode, language, timestamp) {
     wrapper.appendChild(chip);
     wrapper.appendChild(bubble);
     wrapper.appendChild(meta);
+    appendInputCheck(wrapper, inputCheck);
     chat.appendChild(wrapper);
+    return wrapper;
 }
 
 function addAssistantMessage(content, stats, timestamp) {
@@ -99,6 +109,14 @@ function addAssistantMessage(content, stats, timestamp) {
             .filter(Boolean)
             .join(' \u00B7 ');
     }
+    if (stats && stats.verification && stats.verification.blocks) {
+        const issues = stats.verification.blocks.reduce(
+            (sum, block) => sum + (block.issues ? block.issues.length : 0), 0);
+        const verdict = stats.verification.status === 'ok'
+            ? `\u2713 verified (${stats.verification.blocks.length} block(s))`
+            : `\u26A0 verify: ${issues} issue(s) in ${stats.verification.blocks.length} block(s)`;
+        meta.textContent += meta.textContent ? ` \u00B7 ${verdict}` : verdict;
+    }
     if (timestamp) {
         meta.textContent += meta.textContent ? ` \u00B7 ${formatTime(timestamp)}` : formatTime(timestamp);
     }
@@ -127,7 +145,7 @@ function renderTurns(turns) {
     emptyState.style.display = 'none';
     for (const turn of turns) {
         if (turn.role === 'user') {
-            addUserMessage(turn.content, turn.mode, turn.language, turn.timestamp);
+            addUserMessage(turn.content, turn.mode, turn.language, turn.timestamp, turn.input_check);
         } else if (turn.role === 'assistant') {
             addAssistantMessage(turn.content, turn, turn.timestamp);
         }
@@ -328,7 +346,7 @@ async function submitRequest() {
     submitButton.disabled = true;
     inputText.value = '';
     emptyState.style.display = 'none';
-    addUserMessage(content, payload.mode, payload.language);
+    const userMsgEl = addUserMessage(content, payload.mode, payload.language);
     setLoading();
 
     try {
@@ -355,6 +373,7 @@ async function submitRequest() {
 
         currentSessionId = data.session_id || currentSessionId;
         addAssistantMessage(data.result || 'No response returned.', data);
+        appendInputCheck(userMsgEl, data.input_check);
         loadSessions();
         loadStats();
     } catch (error) {

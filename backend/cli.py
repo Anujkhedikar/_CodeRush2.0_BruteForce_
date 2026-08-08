@@ -23,6 +23,7 @@ try:
         list_sessions,
         trim_history,
     )
+    from .verify import syntax_issues, verify_text
 except ImportError:  # pragma: no cover - fallback for direct execution
     from mentor import CodeMentor
     from observability import estimate_cost, overview
@@ -38,11 +39,17 @@ except ImportError:  # pragma: no cover - fallback for direct execution
         list_sessions,
         trim_history,
     )
+    from verify import syntax_issues, verify_text
 
 REPO_MODE = "repo_report"
 REPO_MAX_TOKENS = 4096
 DEFAULT_MAX_TOKENS = 900
 MAX_HISTORY_MESSAGES = 12
+
+# Modes whose answers are expected to contain code and therefore get
+# verified locally before the user sees the result.
+VERIFY_MODES = {"generate", "error_finder", "optimize"}
+INPUT_SYNTAX_CHECK_MODE = "error_finder"
 
 COMMAND_ALIASES = {"h": "help", "sessions": "history", "quit": "exit"}
 KNOWN_COMMANDS = {"help", "history", "view", "resume", "delete", "new", "back", "exit", "stats"}
@@ -124,6 +131,13 @@ def _cmd_view(session_id: str) -> None:
                 f"ctx {context} turn(s) | {model}{duration_text}{cost_text} | "
                 f"{_fmt_time(turn.get('timestamp'))}]"
             )
+            verification = turn.get("verification")
+            if verification and verification.get("blocks"):
+                issues = sum(len(b.get("issues") or []) for b in verification["blocks"])
+                status = "OK" if verification["status"] == "ok" else f"{issues} issue(s)"
+                print(f"      [verification: {status}]")
+        if turn["role"] == "user" and turn.get("input_check"):
+            print(f"      [input syntax check: {len(turn['input_check'])} issue(s)]")
     print("Use /back to return to the chat, /resume <id> to continue this session.")
 
 
@@ -263,6 +277,27 @@ def _ask_continue(state: Dict[str, Any]) -> bool:
                 return True
             continue
         print("Answer y or n, or type /help for commands.")
+
+
+def _print_verification(report: Dict[str, Any]) -> None:
+    """Print a compact per-block verification verdict for an AI answer."""
+    blocks = report.get("blocks") or []
+    if not blocks:
+        return
+    langs = ", ".join(sorted({b["language"] or "?" for b in blocks}))
+    print(f"\nVerification ({langs}): {len(blocks)} code block(s) checked")
+    for block in blocks:
+        issues = block.get("issues") or []
+        if block["status"] == "ok":
+            print(f"  block {block['index']}: OK ({', '.join(block['checks'])})")
+            continue
+        print(
+            f"  block {block['index']}: {len(issues)} issue(s) "
+            f"({', '.join(block['checks'])})"
+        )
+        for issue in issues[:10]:
+            line = f"line {issue['line']}: " if issue.get("line") else ""
+            print(f"    {line}{issue['message']}")
 
 
 def _print_usage(stats: Dict[str, object]) -> None:
@@ -406,6 +441,7 @@ def run_cli(
             mode = _ask_mode(state)
 
         if mode == REPO_MODE:
+            effective_language = ""
             if state["repo_context"] is None and has_repo_snapshot(state["session_id"]):
                 state["repo_context"] = "loaded"
             if state["repo_context"] is None:
@@ -462,15 +498,29 @@ def run_cli(
                 if action == "exit":
                     return 0
                 continue
+            effective_language = mentor.detect_language(user_message) or language
+            input_check: Optional[List[Dict[str, Any]]] = None
+            if mode == INPUT_SYNTAX_CHECK_MODE and effective_language:
+                input_check = syntax_issues(effective_language, user_message)
+                if input_check:
+                    print(f"Input syntax check: {len(input_check)} issue(s) found before asking the model.")
+                    for issue in input_check[:5]:
+                        line = f"line {issue['line']}: " if issue.get("line") else ""
+                        print(f"  {line}{issue['message']}")
             max_tokens = DEFAULT_MAX_TOKENS
-            print(f"Mode: {mode} | Language: {language}")
+            print(f"Mode: {mode} | Language: {effective_language}")
             print("Generating response...\n")
 
+        prompt_message = (
+            user_message
+            if mode == REPO_MODE
+            else mentor.format_request(mode, effective_language, user_message)
+        )
         try:
             stats = mentor.ask(
                 mentor.get_prompt(mode),
                 trim_history(history(state["session_id"]), MAX_HISTORY_MESSAGES),
-                user_message,
+                prompt_message,
                 max_tokens=max_tokens,
             )
         except RuntimeError as exc:
@@ -481,18 +531,28 @@ def run_cli(
         print(result)
         _print_usage(stats)
 
+        verification: Optional[Dict[str, Any]] = None
+        if mode in VERIFY_MODES:
+            verification = verify_text(result, effective_language)
+            if verification["status"] != "no_code":
+                _print_verification(verification)
+            else:
+                verification = None
+
         user_turn = {
             "role": "user",
             "content": user_message,
             "mode": mode,
-            "language": language if mode != REPO_MODE else "",
+            "language": effective_language,
             "timestamp": time.time(),
         }
+        if "input_check" in locals() and input_check:
+            user_turn["input_check"] = input_check
         assistant_turn = {
             "role": "assistant",
             "content": result,
             "mode": mode,
-            "language": language if mode != REPO_MODE else "",
+            "language": effective_language,
             "model": stats.get("model"),
             "provider": stats.get("provider"),
             "usage": stats.get("usage"),
@@ -501,6 +561,8 @@ def run_cli(
             "cost": stats.get("cost"),
             "timestamp": time.time(),
         }
+        if verification:
+            assistant_turn["verification"] = verification
         append_turn(state["session_id"], user_turn)
         append_turn(state["session_id"], assistant_turn)
         first_round = False

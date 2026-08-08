@@ -29,6 +29,7 @@ try:
         list_sessions,
         trim_history,
     )
+    from .verify import syntax_issues, verify_text
 except ImportError:  # pragma: no cover - fallback for direct execution
     from mentor import CodeMentor
     from observability import overview
@@ -43,6 +44,7 @@ except ImportError:  # pragma: no cover - fallback for direct execution
         list_sessions,
         trim_history,
     )
+    from verify import syntax_issues, verify_text
 
 logger = logging.getLogger("codementor")
 if not logger.handlers:
@@ -65,6 +67,11 @@ REPO_MODE = "repo_report"
 REPO_MAX_TOKENS = 4096
 DEFAULT_MAX_TOKENS = 900
 MAX_HISTORY_MESSAGES = 12
+
+# Modes whose answers are expected to contain code: verified locally
+# before the result is returned to the caller.
+VERIFY_MODES = {"generate", "error_finder", "optimize"}
+INPUT_SYNTAX_CHECK_MODE = "error_finder"
 
 app = FastAPI(
     title="CodeMentor AI",
@@ -107,7 +114,9 @@ class MentorRequest(BaseModel):
 
 
 def _record(session_id: str, role: str, content: str, mode: str, language: str,
-            stats: Optional[Dict[str, Any]] = None) -> None:
+            stats: Optional[Dict[str, Any]] = None,
+            verification: Optional[Dict[str, Any]] = None,
+            input_check: Optional[List[Dict[str, Any]]] = None) -> None:
     turn: Dict[str, Any] = {
         "role": role,
         "content": content,
@@ -115,6 +124,10 @@ def _record(session_id: str, role: str, content: str, mode: str, language: str,
         "language": language,
         "timestamp": time.time(),
     }
+    if verification:
+        turn["verification"] = verification
+    if input_check:
+        turn["input_check"] = input_check
     if stats:
         turn.update(
             {
@@ -195,28 +208,43 @@ async def mentor_agent(request: MentorRequest) -> Dict[str, Any]:
         return _repo_report(request, session_id)
 
     user_message = request.input_text.strip()
-    _record(session_id, "user", user_message, request.mode, request.language)
+    effective_language = mentor.detect_language(user_message) or request.language
+    input_check = None
+    if request.mode == INPUT_SYNTAX_CHECK_MODE and effective_language:
+        input_check = syntax_issues(effective_language, user_message)
+    _record(session_id, "user", user_message, request.mode, effective_language,
+            input_check=input_check)
+    prompt_message = mentor.format_request(request.mode, effective_language, user_message)
     try:
         stats = mentor.ask(
             mentor.get_prompt(request.mode),
             trim_history(history(session_id)[:-1], MAX_HISTORY_MESSAGES),
-            user_message,
+            prompt_message,
             max_tokens=DEFAULT_MAX_TOKENS,
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
-    _record(session_id, "assistant", stats["content"], request.mode, request.language, stats)
+    verification = None
+    if request.mode in VERIFY_MODES:
+        check = verify_text(stats["content"], effective_language)
+        if check["status"] != "no_code":
+            verification = check
+
+    _record(session_id, "assistant", stats["content"], request.mode, effective_language, stats,
+            verification=verification)
     return {
         "session_id": session_id,
         "mode": request.mode,
-        "language": request.language,
+        "language": effective_language,
         "result": stats["content"],
         "usage": stats.get("usage"),
         "model": stats.get("model"),
         "provider": stats.get("provider"),
         "duration_ms": stats.get("duration_ms"),
         "context_turns": stats.get("context_turns"),
+        "verification": verification,
+        "input_check": input_check,
     }
 
 

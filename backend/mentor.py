@@ -2,8 +2,9 @@
 # Routes requests to the correct prompt mode for the single-agent mentor.
 
 import os
+import re
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 try:
     from .llm import build_message, call_openai, get_provider
@@ -13,6 +14,15 @@ except ImportError:  # pragma: no cover - fallback for direct execution
     from llm import build_message, call_openai, get_provider
     from observability import estimate_cost
     from prompts import LANGUAGE_LABELS, MODE_PROMPTS
+
+# Mention patterns checked in order; 'c++'/'cpp' must precede 'c' so a
+# standalone word 'c' never swallows them.
+_LANGUAGE_PATTERNS: List[Any] = [
+    ("python", re.compile(r"\bpython\b", re.IGNORECASE)),
+    ("java", re.compile(r"\bjava\b", re.IGNORECASE)),
+    ("cpp", re.compile(r"\bc\+\+|cpp", re.IGNORECASE)),
+    ("c", re.compile(r"\bc(?!\+)\b", re.IGNORECASE)),
+]
 
 
 class CodeMentor:
@@ -35,6 +45,18 @@ class CodeMentor:
         lines.append("")
         lines.append(f"User Input:\n{content.strip()}")
         return "\n".join(lines)
+
+    def detect_language(self, text: str) -> str:
+        """Return a language mentioned in the user's text, or ''.
+
+        A mention in the request wins over the selection: if the user wrote
+        "create a heart in python" the model must be told Python even when
+        the UI defaulted to C++, and vice versa.
+        """
+        for key, pattern in _LANGUAGE_PATTERNS:
+            if pattern.search(text or ""):
+                return key
+        return ""
 
     def get_prompt(self, mode: str) -> str:
         """Return the system prompt for the requested mode."""
