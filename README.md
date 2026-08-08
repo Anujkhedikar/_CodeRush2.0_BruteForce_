@@ -434,11 +434,13 @@ Slash commands work at any prompt (also at the "Continue the chat?" question):
 /help              show all commands
 /history           list all sessions (id, turns, total tokens, preview)
 /view <id>         show a session's conversation with per-turn token usage,
-                   context size, model, and duration
+                   context size, model, duration, and estimated cost
 /resume <id>       continue a previous session (its history becomes the chat context)
 /back              return to the chat prompt
 /new               start a new session
 /delete <id>       delete a session
+/stats             show usage analytics: totals, cost, breakdowns by mode
+                   and provider, and the most expensive sessions
 /exit              quit the CLI
 ```
 
@@ -464,12 +466,17 @@ The frontend sends a JSON body like this:
 `session_id` is optional: empty creates a new session, and passing an existing
 id continues that conversation with history. The response includes the
 `session_id` plus per-turn metadata (`usage`, `model`, `provider`,
-`duration_ms`, `context_turns`).
+`duration_ms`, `context_turns`, `cost`).
 
-History endpoints:
+History and analytics endpoints:
 - `GET /sessions` - compact list of all sessions (preview, turn count, total tokens)
 - `GET /sessions/{id}` - full conversation with per-turn metadata
 - `DELETE /sessions/{id}` - remove a session
+- `GET /stats` - usage analytics: totals (sessions, turns, tokens, estimated
+  cost), breakdowns by mode/provider/model, a 14-day token series, and the
+  most expensive sessions
+
+Cost is estimated from public list prices per 1M tokens (`backend/observability.py`).
 
 The backend returns a JSON object containing the result field with the AI-generated response.
 

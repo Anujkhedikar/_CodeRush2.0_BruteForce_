@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 try:
     from .mentor import CodeMentor
+    from .observability import estimate_cost, overview
     from .prompts import LANGUAGE_LABELS, MODE_DESCRIPTIONS, MODE_PROMPTS
     from .repo import build_repo_summary, scan_repo
     from .session import (
@@ -24,6 +25,7 @@ try:
     )
 except ImportError:  # pragma: no cover - fallback for direct execution
     from mentor import CodeMentor
+    from observability import estimate_cost, overview
     from prompts import LANGUAGE_LABELS, MODE_DESCRIPTIONS, MODE_PROMPTS
     from repo import build_repo_summary, scan_repo
     from session import (
@@ -43,7 +45,7 @@ DEFAULT_MAX_TOKENS = 900
 MAX_HISTORY_MESSAGES = 12
 
 COMMAND_ALIASES = {"h": "help", "sessions": "history", "quit": "exit"}
-KNOWN_COMMANDS = {"help", "history", "view", "resume", "delete", "new", "back", "exit"}
+KNOWN_COMMANDS = {"help", "history", "view", "resume", "delete", "new", "back", "exit", "stats"}
 
 COMMAND_HELP = """Available commands:
   /help              show this help
@@ -53,6 +55,7 @@ COMMAND_HELP = """Available commands:
   /back              return to the chat prompt
   /new               start a new session
   /delete <id>       delete a session
+  /stats             show usage analytics (tokens, cost, breakdowns)
   /exit              quit the CLI"""
 
 
@@ -114,12 +117,52 @@ def _cmd_view(session_id: str) -> None:
             model = turn.get("model") or "?"
             duration = turn.get("duration_ms")
             duration_text = f" | {duration / 1000:.1f}s" if duration else ""
+            cost = estimate_cost(turn.get("model") or "", usage)
+            cost_text = f" | est. ${cost:.4f}" if cost else ""
             print(
                 f"      [tokens: {prompt} in / {completion} out (total {total}) | "
-                f"ctx {context} turn(s) | {model}{duration_text} | "
+                f"ctx {context} turn(s) | {model}{duration_text}{cost_text} | "
                 f"{_fmt_time(turn.get('timestamp'))}]"
             )
     print("Use /back to return to the chat, /resume <id> to continue this session.")
+
+
+def _fmt_cost(cost: float) -> str:
+    if cost >= 0.01:
+        return f"${cost:.3f}"
+    return f"${cost:.4f}"
+
+
+def _print_stats() -> None:
+    """Show aggregate usage: totals, breakdowns, daily series, top sessions."""
+    stats = overview()
+    totals = stats["totals"]
+    print("\n=== Usage Analytics ===")
+    if totals["sessions"] == 0:
+        print("No usage recorded yet. Send a message first.")
+        return
+    print(
+        f"{totals['sessions']} session(s), {totals['turns']} turn(s) | "
+        f"{totals['total_tokens']} tokens in/out | est. cost {_fmt_cost(totals['cost'])}"
+    )
+    print(
+        f"  prompt: {totals['prompt_tokens']} tokens | "
+        f"completion: {totals['completion_tokens']} tokens"
+    )
+    if stats["by_mode"]:
+        print("\nBy mode:")
+        for row in stats["by_mode"]:
+            print(f"  {row['name']:<14} {row['turns']:>4} turn(s) {row['tokens']:>8} tokens {_fmt_cost(row['cost']):>8}")
+    if stats["by_provider"]:
+        print("\nBy provider:")
+        for row in stats["by_provider"]:
+            print(f"  {row['name']:<10} {row['turns']:>4} turn(s) {row['tokens']:>8} tokens {_fmt_cost(row['cost']):>8}")
+    if stats["top_sessions"]:
+        print("\nMost expensive sessions:")
+        for row in stats["top_sessions"][:5]:
+            preview = _shorten(row["preview"], 40) or "(empty session)"
+            print(f"  #{row['id']:<4} {row['tokens']:>8} tokens {_fmt_cost(row['cost']):>8} | {preview}")
+    print("\nUse /view <id> for per-turn details.")
 
 
 def _handle_command(cmd: str, arg: str, state: Dict[str, Any]) -> Optional[str]:
@@ -166,6 +209,8 @@ def _handle_command(cmd: str, arg: str, state: Dict[str, Any]) -> Optional[str]:
                 print(f"Started new session {state['session_id']}.")
         else:
             print(f"No session with id '{arg}'.")
+    elif cmd == "stats":
+        _print_stats()
     elif cmd == "exit":
         return "exit"
     return None
@@ -229,9 +274,11 @@ def _print_usage(stats: Dict[str, object]) -> None:
     duration = stats.get("duration_ms")
     context_turns = stats.get("context_turns", 0)
     duration_text = f" | {duration / 1000:.1f}s" if duration else ""
+    cost = stats.get("cost")
+    cost_text = f" | est. cost {_fmt_cost(float(cost))}" if cost else ""
     print(
         f"\n[context: {context_turns} turn(s) | tokens: {prompt} in / "
-        f"{completion} out (total {total}) | model: {model}{duration_text}]"
+        f"{completion} out (total {total}) | model: {model}{duration_text}{cost_text}]"
     )
 
 
@@ -451,6 +498,7 @@ def run_cli(
             "usage": stats.get("usage"),
             "context_turns": stats.get("context_turns"),
             "duration_ms": stats.get("duration_ms"),
+            "cost": stats.get("cost"),
             "timestamp": time.time(),
         }
         append_turn(state["session_id"], user_turn)

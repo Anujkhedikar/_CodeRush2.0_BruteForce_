@@ -7,9 +7,11 @@ from typing import Any, Dict, List
 
 try:
     from .llm import build_message, call_openai, get_provider
+    from .observability import estimate_cost
     from .prompts import LANGUAGE_LABELS, MODE_PROMPTS
 except ImportError:  # pragma: no cover - fallback for direct execution
     from llm import build_message, call_openai, get_provider
+    from observability import estimate_cost
     from prompts import LANGUAGE_LABELS, MODE_PROMPTS
 
 
@@ -111,4 +113,5 @@ class CodeMentor:
             "provider": provider,
             "duration_ms": round(duration_ms, 1),
             "context_turns": len(history) // 2,
+            "cost": estimate_cost(response.get("model") or "", response.get("usage")),
         }

@@ -4,18 +4,20 @@
 # that expose per-turn metadata: query, mode, model, token usage, context
 # size, duration, and timestamp.
 
+import logging
 import os
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 try:
     from .mentor import CodeMentor
+    from .observability import overview
     from .repo import build_repo_summary, scan_repo
     from .session import (
         append_turn,
@@ -29,6 +31,7 @@ try:
     )
 except ImportError:  # pragma: no cover - fallback for direct execution
     from mentor import CodeMentor
+    from observability import overview
     from repo import build_repo_summary, scan_repo
     from session import (
         append_turn,
@@ -40,6 +43,21 @@ except ImportError:  # pragma: no cover - fallback for direct execution
         list_sessions,
         trim_history,
     )
+
+logger = logging.getLogger("codementor")
+if not logger.handlers:
+    logger.setLevel(logging.INFO)
+    _console = logging.StreamHandler()
+    _console.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    logger.addHandler(_console)
+    _logs_dir = Path(__file__).resolve().parent.parent / "logs"
+    try:
+        _logs_dir.mkdir(exist_ok=True)
+        _file = logging.FileHandler(_logs_dir / "backend.log", encoding="utf-8")
+        _file.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+        logger.addHandler(_file)
+    except OSError:
+        pass  # logging stays console-only if the file cannot be created
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
@@ -63,6 +81,22 @@ app.add_middleware(
 )
 
 mentor = CodeMentor()
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log every request with method, path, status, and duration."""
+    started = time.perf_counter()
+    response = await call_next(request)
+    duration_ms = (time.perf_counter() - started) * 1000
+    logger.info(
+        "%s %s -> %s (%.0f ms)",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+    )
+    return response
 
 
 class MentorRequest(BaseModel):
@@ -89,6 +123,7 @@ def _record(session_id: str, role: str, content: str, mode: str, language: str,
                 "usage": stats.get("usage"),
                 "context_turns": stats.get("context_turns"),
                 "duration_ms": stats.get("duration_ms"),
+                "cost": stats.get("cost"),
             }
         )
     append_turn(session_id, turn)
@@ -188,6 +223,12 @@ async def mentor_agent(request: MentorRequest) -> Dict[str, Any]:
 @app.get("/sessions")
 async def sessions() -> Dict[str, Any]:
     return {"sessions": list_sessions()}
+
+
+@app.get("/stats")
+async def stats() -> Dict[str, Any]:
+    """Usage analytics: totals, per-mode/provider/model breakdowns, daily series."""
+    return overview()
 
 
 @app.get("/sessions/{session_id}")

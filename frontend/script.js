@@ -18,6 +18,7 @@ const REPO_MODE = 'repo_report';
 const MENTOR_URLS = {
     mentor: '/mentor',
     sessions: '/sessions',
+    stats: '/stats',
 };
 
 let currentSessionId = '';
@@ -38,6 +39,11 @@ function formatNumber(value) {
 function formatTime(timestamp) {
     if (!timestamp) return '';
     return new Date(timestamp * 1000).toLocaleString();
+}
+
+function formatCost(cost) {
+    if (cost === null || cost === undefined) return '?';
+    return cost >= 0.01 ? `$${Number(cost).toFixed(3)}` : `$${Number(cost).toFixed(4)}`;
 }
 
 function addUserMessage(content, mode, language, timestamp) {
@@ -83,10 +89,13 @@ function addAssistantMessage(content, stats, timestamp) {
             ? `tokens: ${formatNumber(usage.prompt_tokens)} in / ${formatNumber(usage.completion_tokens)} out (${formatNumber(usage.total_tokens)} total)`
             : 'tokens: n/a';
         const model = stats.model ? `\u00B7 ${stats.model}` : '';
+        const cost = stats.cost !== undefined
+            ? `\u00B7 est. ${formatCost(stats.cost)}`
+            : '';
         const duration = stats.duration_ms
             ? `\u00B7 ${(stats.duration_ms / 1000).toFixed(1)}s`
             : '';
-        meta.textContent = [contextTurns, tokens, model, duration]
+        meta.textContent = [contextTurns, tokens, model, cost, duration]
             .filter(Boolean)
             .join(' \u00B7 ');
     }
@@ -209,6 +218,7 @@ async function deleteSession(sessionId) {
             emptyState.style.display = '';
         }
         loadSessions();
+        loadStats();
     } catch (error) {
         addErrorMessage(`Could not delete session: ${error.message}`);
     }
@@ -220,6 +230,74 @@ function newSession() {
     emptyState.style.display = '';
     inputText.value = '';
     loadSessions();
+}
+
+// ---------- usage analytics ----------
+
+function renderUsageBars(container, rows, barFor) {
+    container.innerHTML = '';
+    const max = Math.max(...rows.map((row) => barFor(row)), 1);
+    for (const row of rows) {
+        const line = document.createElement('div');
+        line.className = 'usage-row';
+
+        const name = document.createElement('div');
+        name.className = 'usage-name';
+        name.textContent = row.name;
+
+        const track = document.createElement('div');
+        track.className = 'usage-track';
+        const fill = document.createElement('div');
+        fill.className = 'usage-fill';
+        fill.style.width = `${Math.max(2, (barFor(row) / max) * 100)}%`;
+        track.appendChild(fill);
+
+        const value = document.createElement('div');
+        value.className = 'usage-value';
+        value.textContent = formatNumber(barFor(row));
+
+        line.appendChild(name);
+        line.appendChild(track);
+        line.appendChild(value);
+        container.appendChild(line);
+    }
+}
+
+async function loadStats() {
+    try {
+        const response = await fetch(MENTOR_URLS.stats);
+        const data = await response.json();
+        const totals = data.totals || {};
+        const empty = document.getElementById('usageEmpty');
+        const totalsBox = document.getElementById('usageTotals');
+        if (!totals.sessions) {
+            empty.style.display = '';
+            totalsBox.hidden = true;
+            return;
+        }
+        empty.style.display = 'none';
+        totalsBox.hidden = false;
+        totalsBox.textContent =
+            `${formatNumber(totals.sessions)} session(s) \u00B7 ${formatNumber(totals.turns)} turn(s) ` +
+            `\u00B7 ${formatNumber(totals.total_tokens)} tokens \u00B7 est. ${formatCost(totals.cost)}`;
+        renderUsageBars(document.getElementById('usageModes'), data.by_mode || [], (row) => row.tokens);
+
+        const days = document.getElementById('usageDays');
+        days.innerHTML = '';
+        const maxDay = Math.max(...(data.by_day || []).map((day) => day.tokens), 1);
+        for (const day of data.by_day || []) {
+            const cell = document.createElement('div');
+            cell.className = 'usage-day';
+            cell.title = `${day.day} \u00B7 ${formatNumber(day.tokens)} tokens`;
+            const bar = document.createElement('div');
+            bar.className = 'day-bar';
+            bar.style.height = day.tokens ? `${Math.max(6, (day.tokens / maxDay) * 100)}%` : '2px';
+            cell.appendChild(bar);
+            days.appendChild(cell);
+        }
+    } catch (error) {
+        // analytics panel is optional; keep the chat working
+    }
 }
 
 // ---------- mode switching ----------
@@ -278,6 +356,7 @@ async function submitRequest() {
         currentSessionId = data.session_id || currentSessionId;
         addAssistantMessage(data.result || 'No response returned.', data);
         loadSessions();
+        loadStats();
     } catch (error) {
         removeLoading();
         addErrorMessage(`Error: ${error.message}`);
@@ -303,3 +382,4 @@ inputText.addEventListener('keydown', (event) => {
 newSessionBtn.addEventListener('click', newSession);
 
 loadSessions();
+loadStats();

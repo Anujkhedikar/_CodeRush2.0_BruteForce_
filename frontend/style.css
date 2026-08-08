@@ -123,6 +123,104 @@ body {
     color: #f87171;
 }
 
+/* ---------- usage analytics ---------- */
+
+.usage-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+.usage-empty {
+    font-size: 0.78rem;
+    color: #6b7280;
+    padding: 4px 0;
+}
+
+.usage-totals {
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: #e5e7eb;
+    line-height: 1.5;
+}
+
+.usage-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.usage-row {
+    display: grid;
+    grid-template-columns: 74px 1fr 52px;
+    align-items: center;
+    gap: 8px;
+}
+
+.usage-name {
+    font-size: 0.72rem;
+    color: #cbd5e1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.usage-track {
+    height: 8px;
+    background: #1f2937;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.usage-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #6366f1);
+    border-radius: 6px;
+}
+
+.usage-value {
+    font-size: 0.72rem;
+    text-align: right;
+    color: #9ca3af;
+}
+
+.usage-days-title {
+    margin-top: 6px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6b7280;
+}
+
+.usage-days {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 56px;
+}
+
+.usage-day {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    height: 100%;
+}
+
+.day-bar {
+    width: 100%;
+    background: linear-gradient(180deg, #6366f1, #3b82f6);
+    border-radius: 3px 3px 0 0;
+    min-height: 2px;
+}
+
+.day-bar:hover {
+    background: linear-gradient(180deg, #818cf8, #60a5fa);
+}
+
 /* ---------- main chat area ---------- */
 
 .main {
