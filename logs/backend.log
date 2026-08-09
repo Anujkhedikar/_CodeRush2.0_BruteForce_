@@ -371,3 +371,8 @@
 2026-08-09 17:05:58,188 INFO codementor: POST /mentor -> 200 (2391 ms)
 2026-08-09 17:05:58,243 INFO codementor: GET /sessions -> 200 (1 ms)
 2026-08-09 17:05:58,252 INFO codementor: GET /stats -> 200 (1 ms)
+2026-08-09 17:16:53,978 INFO codementor: GET / -> 304 (974 ms)
+2026-08-09 17:16:54,036 INFO codementor: GET /style.css -> 304 (9 ms)
+2026-08-09 17:16:54,040 INFO codementor: GET /script.js -> 304 (12 ms)
+2026-08-09 17:16:54,102 INFO codementor: GET /sessions -> 200 (7 ms)
+2026-08-09 17:16:54,114 INFO codementor: GET /stats -> 200 (2 ms)
