@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="YUKTI FAQ — verified trust and security questions: no code execution, local-first access, parse-only verification, and telemetry honesty." />
+  <meta name="theme-color" content="#000000" />
+  <title>Trust &amp; Security FAQ — YUKTI</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            canvas: "#000000", surface: "#0A0A0C", elevated: "#101012", deep: "#06060A",
+            orange: { DEFAULT: "#FF5B00", b: "#FF6B2B", a: "#FF8A4D" },
+            green: { DEFAULT: "#10B981", t: "#00E599" },
+            ink: { DEFAULT: "#FCFDFF", body: "rgba(252,253,255,0.86)", muted: "#A1A4A5" }
+          },
+          fontFamily: {
+            display: ['"Plus Jakarta Sans"', '"Inter"', 'sans-serif'],
+            body: ['"Inter"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+
+  <div id="cursor-glow" class="pointer-events-none fixed top-0 left-0 w-[550px] h-[550px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0 transition-opacity duration-300 z-30"
+       style="background: radial-gradient(circle, rgba(255,91,0,0.14) 0%, rgba(255,91,0,0.04) 45%, transparent 70%); will-change: transform;"></div>
+
+  <header class="nav-bar" id="navBar">
+    <div class="container-x nav-inner">
+      <a class="logo" href="/" aria-label="YUKTI home">
+        <svg class="logo-mark" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+          <path d="M54 41L84 16L72 31L54 41Z" fill="url(#yukti-o)" />
+          <path d="M20 29L36 29L51 46L42 76L42 46L20 29Z" fill="#FFFFFF" />
+          <path d="M51 46L75 34L42 76L51 46Z" fill="url(#yukti-o)" />
+          <defs>
+            <linearGradient id="yukti-o" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FF8A4D" />
+              <stop offset="100%" stop-color="#FF5B00" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="logo-name">YUKTI</span>
+      </a>
+      <nav class="nav-links" id="navLinks">
+        <a class="nav-link" href="/platform.html">Platform</a>
+        <a class="nav-link" href="/modes.html">Mentor Modes</a>
+        <a class="nav-link" href="/telemetry.html">Analytics</a>
+        <a class="nav-link" href="/docs.html">Docs</a>
+      </nav>
+      <div class="nav-end">
+        <a class="btn btn-primary btn-mono" href="/app">Open Playground →</a>
+        <button class="icon-btn nav-burger" id="navBurger" type="button" aria-label="Menu" aria-expanded="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="mobile-panel" id="mobilePanel">
+      <a class="nav-link" href="/platform.html">Platform</a>
+      <a class="nav-link" href="/modes.html">Mentor Modes</a>
+      <a class="nav-link" href="/telemetry.html">Analytics</a>
+      <a class="nav-link" href="/docs.html">Docs</a>
+      <a class="btn btn-primary btn-mono mt-3" href="/app">Open Playground →</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container-x" style="max-width:1000px">
+        <span class="micro-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v6c0 5-3.7 7.8-9 9-5.3-1.2-9-4-9-9V7l9-5z"/><path d="M9 12l2 2 4-4"/></svg><span>[TRUST_INDEX :: <span class="brk">VERIFIED BY STRUCTURE</span>]</span></span>
+        <h1 style="font-size:clamp(34px,5vw,54px)">Questions we <span class="grad-orange">answer with architecture</span></h1>
+        <p class="hero-sub">Security is not a promise here — it's enforced by the pipeline. Every answer below maps to a hard guarantee.</p>
+        <div class="hero-ctas">
+          <a class="btn btn-ghost btn-lg" href="#security">Security &amp; Trust</a>
+          <a class="btn btn-ghost btn-lg" href="#product">Product</a>
+          <a class="btn btn-ghost btn-lg" href="#api">API</a>
+        </div>
+      </div>
+      <span class="grid-dots" aria-hidden="true"></span>
+    </section>
+
+    <section class="section" id="security">
+      <div class="container-x">
+        <div class="section-tag">SECURITY &amp; TRUST</div>
+        <h2 class="section-title">The guarantees</h2>
+        <div class="divider-orange"></div>
+
+        <div style="margin-top:32px;max-width:860px">
+          <span class="faq-q-label">SEC / 001 — EXECUTION</span>
+          <div class="acc-item">
+            <div class="acc-q">Does YUKTI ever execute the code it writes?<span class="acc-ic">+</span></div>
+            <div class="acc-a"><div class="acc-a-inner">
+              No. Code produced by the mentor is parsed for syntax only — it is never compiled, run, or executed anywhere in the pipeline. The decision to execute stays entirely in your hands.
+            </div></div>
+          </div>
+
+          <span class="faq-q-label">SEC / 002 — LOCALITY</span>
+          <div class="acc-item">
+            <div class="acc-q">Where does my repository data go?<span class="acc-ic">+</span></div>
+            <div class="acc-a"><div class="acc-a-inner">
+              Repository scans build a summary in the working directory at scan time. Sessions persist locally in SQLite. Your full source tree never leaves the machine serving YUKTI.
+            </div></div>
+          </div>
+
+          <span class="faq-q-label">SEC / 003 — VERIFICATION</span>
+          <div class="acc-item">
+            <div class="acc-q">How do I know the output is actually checked?<span class="acc-ic">+</span></div>
+            <div class="acc-a"><div class="acc-a-inner">
+              Code-producing modes pass their output through a local parser, and the verdict — status, count of blocks parsed, and any issues found — is returned on every code answer. No silent best-effort paths.
+            </div></div>
+          </div>
+
+          <span class="faq-q-label">SEC / 004 — HANDSHAKE</span>
+          <div class="acc-item">
+            <div class="acc-q">What is the secure OTP handshake?<span class="acc-ic">+</span></div>
+            <div class="acc-a"><div class="acc-a-inner">
+              A one-time code seals and locks a session to a single gateway ID before the first mentor turn. Sessions that already carry a sealed handshake are resumed without re-locking.
+            </div></div>
+          </div>
+
+          <span class="faq-q-label">SEC / 005 — PROVENANCE</span>
+          <div class="acc-item">
+            <div class="acc-q">Are the telemetry numbers real?<span class="acc-ic">+</span></div>
+            <div class="acc-a"><div class="acc-a-inner">
+              Yes. The <a class="t-orange" href="/telemetry.html">Telemetry</a> page renders live data straight from <code class="mono">GET /stats</code> — exactly what the mentor has actually done, with nothing fabricated.
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt" id="product">
+      <div class="container-x">
+        <div class="section-tag">PRODUCT</div>
+        <h2 class="section-title">What the mentor can do</h2>
+        <div class="divider-orange"></div>
+
+        <div style="margin-top:32px;max-width:860px">
+          <span class="faq-q-label">PRD / 001 — MODES</span>
+          <div class="acc-item">
+            <div class="acc-q">What can the five modes do?<span class="acc-ic">+</span></div>
+            <div class="acc-a"><div class="acc-a-inner">
+              Explain, Find Errors, Generate, Optimize, and Repo Report — each a specialized lens over the same verified engine. See the full sheets on the <a class="t-orange" href="/modes.html">Mentor Modes</a> page.
+            </div></div>
+          </div>
+
+          <span class="faq-q-label">PRD / 002 — CONTEXT</span>
+          <div class="acc-item">
+            <div class="acc-q">Does the mentor remember my conversation?<span class="acc-ic">+</span></div>
+            <div class="acc-a"><div class="acc-a-inner">
+              Yes. Sessions hold the thread; long conversations are folded into a memory summary instead of evaporating. Context turns are reported on the response.
+            </div></div>
+          </div>
+
+          <span class="faq-q-label">PRD / 003 — COST</span>
+          <div class="acc-item">
+            <div class="acc-q">Can I see how much a turn cost?<span class="acc-ic">+</span></div>
+            <div class="acc-a"><div class="acc-a-inner">
+              Always. Every turn records tokens in/out, model, provider, latency, and estimated cost — surfaced in the client and in <code class="mono">/stats</code>.
+            </div></div>
+          </div>
+
+          <span class="faq-q-label">PRD / 004 — MODELS</span>
+          <div class="acc-item">
+            <div class="acc-q">Which models and providers are used?<span class="acc-ic">+</span></div>
+            <div class="acc-a"><div class="acc-a-inner">
+              Routing is provider-agnostic and configured through environment variables — you pick the default, code, and cost-sensitive models. No vendor lock-in.
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="api">
+      <div class="container-x">
+        <div class="section-tag">API</div>
+        <h2 class="section-title">Connecting to the grid</h2>
+        <div class="divider-orange"></div>
+
+        <div style="margin-top:32px;max-width:860px">
+          <span class="faq-q-label">API / 001 — ENDPOINTS</span>
+          <div class="acc-item">
+            <div class="acc-q">What API endpoints exist?<span class="acc-ic">+</span></div>
+            <div class="acc-a"><div class="acc-a-inner">
+              <code class="mono">POST /mentor</code> (chat + verify), <code class="mono">GET /sessions</code>, <code class="mono">DELETE /sessions/{id}</code>, <code class="mono">GET /stats</code>, and <code class="mono">GET /health</code>. Full reference on the <a class="t-orange" href="/docs.html#api">Docs</a> page.
+            </div></div>
+          </div>
+
+          <span class="faq-q-label">API / 002 — AUTH</span>
+          <div class="acc-item">
+            <div class="acc-q">Do I need API keys to read telemetry?<span class="acc-ic">+</span></div>
+            <div class="acc-a"><div class="acc-a-inner">
+              Read endpoints are served by the local backend without extra auth. Model keys are read from environment configuration on the server, never from the browser.
+            </div></div>
+          </div>
+
+          <span class="faq-q-label">API / 003 — ERRORS</span>
+          <div class="acc-item">
+            <div class="acc-q">What happens when the model provider is down?<span class="acc-ic">+</span></div>
+            <div class="acc-a"><div class="acc-a-inner">
+              The backend returns a <code class="mono">503</code> with a clear detail message, and the UI surfaces it as an actionable status — never as a silent empty answer.
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container-x footer-grid">
+      <div>
+        <a class="logo" href="/">
+          <svg class="logo-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <g transform="translate(16,16)"><polygon points="0,-13 11.26,-6.5 11.26,6.5 0,13 -11.26,6.5 -11.26,-6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="0" cy="0" r="3.6" fill="currentColor"/></g>
+          </svg>
+          <span class="logo-name">YUKTI</span>
+        </a>
+        <p class="footer-desc">Verified, measured, locally-dispatched programming mentors. Your code stays on your machine — forever.</p>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <a class="footer-link" href="/platform.html">Platform</a>
+        <a class="footer-link" href="/modes.html">Mentor Modes</a>
+        <a class="footer-link" href="/telemetry.html">Analytics</a>
+        <a class="footer-link" href="/app">Playground</a>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <a class="footer-link" href="/about.html">About</a>
+        <a class="footer-link" href="/docs.html">Docs</a>
+        <a class="footer-link" href="/faq.html">FAQ</a>
+      </div>
+      <div>
+        <h4>Support</h4>
+        <a class="footer-link" href="/faq.html">Trust &amp; Security FAQ</a>
+        <a class="footer-link" href="/docs.html#api">API Reference</a>
+        <a class="footer-link" href="/docs.html#cli">CLI Reference</a>
+      </div>
+    </div>
+    <div class="footer-bottom container-x">
+      <span>© <span data-year>2026</span> YUKTI. All rights reserved.</span>
+      <span style="display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="select-pill lock-tag"><span class="status-dot"></span>&nbsp; LOCAL-FIRST · NO CODE EXECUTION</span>
+      </span>
+    </div>
+  </footer>
+
+  <a class="back-top" id="backTop" href="#top" aria-label="Back to top">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  </a>
+
+  <script src="js/app.js" defer></script>
+</body>
+</html>

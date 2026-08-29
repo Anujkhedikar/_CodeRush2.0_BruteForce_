@@ -6,6 +6,8 @@ import MemeHome from './MemeHome'
 import AnalyticsPanel from './components/AnalyticsPanel'
 import AIAnalysisPanel from './components/AIAnalysisPanel'
 import CreatorContentPanel from './components/CreatorContentPanel'
+import TacticalHero from './components/TacticalHero'
+import CodeMentorPlayground from './components/CodeMentorPlayground'
 import { getAlgodConfigFromViteEnvironment, getKmdConfigFromViteEnvironment } from './utils/network/getAlgoClientConfigs'
 
 let supportedWallets: SupportedWallet[]
@@ -26,17 +28,17 @@ if (import.meta.env.VITE_ALGOD_NETWORK === 'localnet') {
     { id: WalletId.DEFLY },
     { id: WalletId.PERA },
     { id: WalletId.EXODUS },
-    { id: WalletId.LUTE}
+    { id: WalletId.LUTE },
     // If you are interested in WalletConnect v2 provider
     // refer to https://github.com/TxnLab/use-wallet for detailed integration instructions
   ]
 }
 
-type TabType = 'weather' | 'meme' | 'analytics' | 'ai' | 'creator'
+type TabType = 'weather' | 'meme' | 'analytics' | 'ai' | 'creator' | 'pro' | 'mentor'
 
 export default function App() {
   const algodConfig = getAlgodConfigFromViteEnvironment()
-  const [activeTab, setActiveTab] = useState<TabType>('weather')
+  const [activeTab, setActiveTab] = useState<TabType>('mentor')
 
   const walletManager = new WalletManager({
     wallets: supportedWallets,
@@ -55,7 +57,9 @@ export default function App() {
     },
   })
 
-  return (
+  return activeTab === 'mentor' ? (
+    <CodeMentorPlayground onExitApp={(tab) => setActiveTab(tab as TabType)} />
+  ) : (
     <SnackbarProvider maxSnack={3}>
       <WalletProvider manager={walletManager}>
         <div className="min-h-screen">
@@ -113,6 +117,22 @@ export default function App() {
                 >
                   👤 Creator
                 </button>
+                <button
+                  onClick={() => setActiveTab('pro')}
+                  className={`px-5 py-4 font-semibold transition-all ${
+                    activeTab === 'pro'
+                      ? 'text-orange-600 border-b-4 border-orange-600 bg-orange-50'
+                      : 'text-gray-600 hover:text-orange-600 hover:bg-gray-50'
+                  }`}
+                >
+                  ⚡ Pro Landing
+                </button>
+                <button
+                  onClick={() => setActiveTab('mentor')}
+                  className="px-5 py-4 font-semibold transition-all text-red-600 hover:text-red-700"
+                >
+                  🧠 Mentor
+                </button>
               </div>
             </div>
           </div>
@@ -142,6 +162,7 @@ export default function App() {
                 </div>
               </div>
             )}
+            {activeTab === 'pro' && <TacticalHero />}
           </div>
         </div>
       </WalletProvider>

@@ -1,122 +1,664 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CodeMentor AI</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="YUKTI — your local-first programming mentor. It reads your code the way a senior engineer does, then explains it, finds the bugs, writes the fix, and measures the result." />
+  <meta name="theme-color" content="#000000" />
+  <title>YUKTI — Your Code. Understood.</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            canvas: '#000000',
+            card: '#0A0A0C',
+            elevated: '#101012',
+            deep: '#06060A',
+            primary: '#FF5B00',
+            'primary-glow': '#FF6B2B',
+            emerald: '#10B981',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { overflow-x: hidden; }
+    body {
+      background-color: #000000;
+      color: #FCFDFF;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+    .bg-dots {
+      background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 26px 26px;
+    }
+    /* ---------- Mode carousel terminal ---------- */
+    .tm-stage { min-height: 220px; display: flex; flex-direction: column; overflow-x: auto; }
+    .tm-slide { display: none; }
+    .tm-slide.active { display: flex; flex-direction: column; flex: 1 1 auto; justify-content: space-between; }
+    .tm-ln { display: block; opacity: 1; }
+    .tm-slide.active .tm-ln {
+      opacity: 0;
+      animation: tm-in 0.45s steps(1, end) forwards;
+      animation-delay: calc(var(--i, 0) * 0.16s);
+    }
+    @keyframes tm-in { to { opacity: 1; } }
+    .tm-caret {
+      display: inline-block;
+      width: 0.55em;
+      height: 1.05em;
+      vertical-align: text-bottom;
+      margin-left: 2px;
+      background: #FF8A4D;
+      animation: tm-blink 0.9s steps(1) infinite;
+    }
+    @keyframes tm-blink { 50% { opacity: 0; } }
+    .tm-dot {
+      transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+    .tm-dot.active {
+      background: rgba(255, 91, 0, 0.14);
+      border-color: rgba(255, 91, 0, 0.55);
+      color: #FF8A4D;
+      box-shadow: 0 0 14px -2px rgba(255, 91, 0, 0.4);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .tm-slide.active .tm-ln { animation: none !important; opacity: 1 !important; }
+    }
+  </style>
 </head>
-<body>
-    <div class="app">
-        <aside class="sidebar">
-            <div class="brand">
-                <span class="brand-mark" aria-hidden="true">
-                    <svg viewBox="0 0 32 32" fill="none">
-                        <circle cx="16" cy="16" r="14.5" stroke="currentColor" stroke-width="1.4"/>
-                        <path d="M11 17.2l3.4 3.4L21.5 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </span>
-                <div class="brand-text">
-                    <h1>CodeMentor<span>AI</span></h1>
-                    <p class="brand-tag">A senior dev, on call</p>
-                </div>
-            </div>
+<body class="bg-black text-neutral-200 antialiased selection:bg-[#FF5B00] selection:text-black min-h-screen">
 
-            <button id="newSessionBtn" type="button" class="new-session">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1V13M1 7H13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-                New Session
-            </button>
+  <div id="cursor-glow" class="pointer-events-none fixed top-0 left-0 w-[550px] h-[550px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0 transition-opacity duration-300 z-30"
+       style="background: radial-gradient(circle, rgba(255,91,0,0.14) 0%, rgba(255,91,0,0.04) 45%, transparent 70%); will-change: transform;"></div>
 
-            <div class="sidebar-section sidebar-scroll">
-                <h2 class="sidebar-title">Session History</h2>
-                <div id="sessionList" class="session-list"></div>
-            </div>
+  <!-- TOP NAVIGATION -->
+  <header class="sticky top-0 z-50 border-b border-white/[0.06] bg-black/80 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3 sm:gap-4">
+      <a href="/" class="flex items-center gap-2.5 font-extrabold tracking-tight text-white text-lg whitespace-nowrap" aria-label="YUKTI home">
+        <svg class="h-7 w-7 shrink-0" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+          <path d="M54 41L84 16L72 31L54 41Z" fill="url(#yukti-orange)" />
+          <path d="M20 29L36 29L51 46L42 76L42 46L20 29Z" fill="#FFFFFF" />
+          <path d="M51 46L75 34L42 76L51 46Z" fill="url(#yukti-orange)" />
+          <defs>
+            <linearGradient id="yukti-orange" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FF8A4D" />
+              <stop offset="100%" stop-color="#FF5B00" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <span>YUKTI</span>
+      </a>
 
-            <div class="sidebar-section usage-section">
-                <h2 class="sidebar-title">Usage Analytics</h2>
-                <div id="usagePanel" class="usage-panel">
-                    <div class="usage-empty" id="usageEmpty">No usage recorded yet.</div>
-                    <div class="usage-totals" id="usageTotals" hidden></div>
+      <nav class="hidden md:flex items-center gap-7 text-sm font-medium" aria-label="Primary">
+        <a href="/platform.html" class="text-neutral-400 hover:text-white transition">Platform</a>
+        <a href="/modes.html" class="text-neutral-400 hover:text-white transition">Mentor Modes</a>
+        <a href="/telemetry.html" class="text-neutral-400 hover:text-white transition">Analytics</a>
+        <a href="/docs.html" class="text-neutral-400 hover:text-white transition">Docs</a>
+      </nav>
 
-                    <div class="usage-label">By feature</div>
-                    <div id="usageModes" class="usage-group"></div>
-
-                    <div class="usage-days-title">Tokens &middot; last 14 days</div>
-                    <div id="usageDays" class="usage-days"></div>
-                </div>
-            </div>
-        </aside>
-
-        <main class="main">
-            <div id="chat" class="chat">
-                <div class="empty-state" id="emptyState">
-                    <span class="empty-glyph" aria-hidden="true">
-                        <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
-                            <circle cx="16" cy="16" r="14.5" stroke="currentColor" stroke-width="1.2"/>
-                            <path d="M11 17.2l3.4 3.4L21.5 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </span>
-                    <h2>Welcome to CodeMentor AI</h2>
-                    <p>Ask the mentor to explain code, find errors, generate code, optimize
-                        existing programs, or analyze a whole repository. Every query records
-                        its token usage and context size.</p>
-                    <div class="empty-modes">
-                        <span>Explain</span>
-                        <span>Find Errors</span>
-                        <span>Generate</span>
-                        <span>Optimize</span>
-                        <span>Analyze Repo</span>
-                    </div>
-                </div>
-            </div>
-
-            <section class="composer">
-                <div class="composer-controls">
-                    <label id="languageLabel" class="control">
-                        <span class="control-label">Programming Language</span>
-                        <span class="control-field">
-                            <select id="languageSelect">
-                                <option value="python">Python</option>
-                                <option value="java">Java</option>
-                                <option value="c">C</option>
-                                <option value="cpp">C++</option>
-                            </select>
-                        </span>
-                    </label>
-
-                    <label class="control">
-                        <span class="control-label">Feature</span>
-                        <span class="control-field">
-                            <select id="modeSelect">
-                                <option value="explain">Explain Code</option>
-                                <option value="error_finder">Find Errors</option>
-                                <option value="generate">Generate Code</option>
-                                <option value="optimize">Optimize Code</option>
-                                <option value="repo_report">Analyze Repository</option>
-                            </select>
-                        </span>
-                    </label>
-                </div>
-
-                <div class="composer-input">
-                    <span class="prompt-glyph" aria-hidden="true">&gt;</span>
-                    <textarea id="inputText" placeholder="Paste code or type your request here..." rows="1"></textarea>
-                </div>
-
-                <div class="composer-footer">
-                    <span class="composer-hint"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> to send</span>
-                    <button id="submitButton" type="button" class="send-btn">
-                        Send
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 7H12M12 7L7.5 2.5M12 7L7.5 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </button>
-                </div>
-            </section>
-        </main>
+      <div class="flex items-center gap-4 shrink-0">
+        <a href="/app" class="inline-flex items-center gap-1.5 bg-[#FF5B00] hover:bg-[#FF6B2B] text-black text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-md shadow-sm transition whitespace-nowrap">
+          Open Playground <span aria-hidden="true">→</span>
+        </a>
+      </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="script.js"></script>
+  </header>
+
+  <!-- 1. HERO -->
+  <section class="relative overflow-hidden border-b border-white/[0.06] bg-[#000000]">
+    <div class="pointer-events-none absolute inset-0 -z-10 bg-dots" aria-hidden="true"></div>
+    <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true"
+         style="background: radial-gradient(820px 520px at 82% -10%, rgba(255,91,0,0.05), transparent 62%), radial-gradient(600px 420px at -8% 108%, rgba(16,185,129,0.05), transparent 55%);"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-12 items-center py-16 lg:py-24 min-w-0">
+      <!-- Left: hero copy -->
+      <div class="min-w-0">
+        <div class="inline-flex items-center gap-2 rounded-full border border-[#FF6B2B]/35 bg-[#FF6B2B]/10 px-3.5 py-1.5 font-mono text-[11px] font-medium tracking-[0.12em]">
+          <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-[#00E599]" aria-hidden="true"></span>
+          <span class="text-[#00E599]">SYSTEM: OPERATIONAL</span>
+          <span class="text-[#FF8A4D]">· Local-first AI mentor - open models</span>
+        </div>
+
+        <h1 class="mt-6 text-[44px] leading-[1.02] font-extrabold tracking-tight text-white sm:text-6xl xl:text-7xl">
+          YOUR CODE.
+          <br />
+          <span class="bg-gradient-to-r from-[#FF8A4D] to-[#FF5B00] bg-clip-text text-transparent">UNDERSTOOD.</span>
+        </h1>
+
+        <p class="mt-6 max-w-xl text-base sm:text-lg leading-relaxed text-neutral-400">
+          YUKTI reads your source the way a senior engineer does — then explains it, finds the bugs, writes the fix, and measures the result. No canned answers. Your code, your repository, explained against your own context.
+        </p>
+
+        <div class="mt-8 flex flex-wrap items-center gap-4">
+          <a href="/app" class="inline-flex items-center gap-2 rounded-lg bg-[#FF5B00] hover:bg-[#FF6B2B] px-6 py-3 text-sm font-bold text-black shadow-sm hover:shadow-[0_0_15px_rgba(255,91,0,0.25)] transition duration-150">
+            Open the Playground
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+          <a href="/modes.html" class="inline-flex items-center gap-2 rounded-full border border-[#26282E] bg-transparent px-6 py-3.5 text-sm font-medium text-neutral-200 transition-colors hover:bg-white/5 hover:text-white">
+            Browse mentor modes
+          </a>
+        </div>
+
+        <div class="mt-6 flex flex-wrap items-center gap-2">
+          <span class="text-[12px] font-mono text-neutral-600" aria-hidden="true">//</span>
+          <a href="/app?mode=explain" class="rounded border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 font-mono text-[11px] text-neutral-300 transition hover:border-[#FF6B2B]/40 hover:text-[#FF8A4D]">Explain</a>
+          <a href="/app?mode=error_finder" class="rounded border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 font-mono text-[11px] text-neutral-300 transition hover:border-[#FF6B2B]/40 hover:text-[#FF8A4D]">Find Errors</a>
+          <a href="/app?mode=generate" class="rounded border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 font-mono text-[11px] text-neutral-300 transition hover:border-[#FF6B2B]/40 hover:text-[#FF8A4D]">Generate</a>
+          <a href="/app?mode=optimize" class="rounded border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 font-mono text-[11px] text-neutral-300 transition hover:border-[#FF6B2B]/40 hover:text-[#FF8A4D]">Optimize</a>
+          <a href="/app?mode=repo_report" class="rounded border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 font-mono text-[11px] text-neutral-300 transition hover:border-[#FF6B2B]/40 hover:text-[#FF8A4D]">Repo Report</a>
+        </div>
+      </div>
+
+      <!-- Right: sliding 5-mode terminal carousel -->
+      <div class="min-w-0 flex justify-center lg:justify-end">
+        <div id="modeCarousel" class="w-full max-w-[400px] overflow-hidden rounded-2xl border border-white/[0.12] bg-[#0A0A0C]/80 backdrop-blur-xl shadow-[0_0_50px_rgba(255,91,0,0.15)]">
+          <div class="flex items-center justify-between gap-3 border-b border-white/[0.06] bg-white/[0.03] px-4 py-3">
+            <span class="flex items-center gap-2 font-mono text-[13px] text-white">
+              <span class="text-[#FF5B00]" aria-hidden="true">●</span> codegraph.live
+            </span>
+            <span class="inline-flex items-center gap-1.5 rounded-full border border-[#10B981]/40 bg-[#10B981]/10 px-2.5 py-0.5 font-mono text-[10px] font-medium tracking-wider text-[#00E599]">
+              <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-[#00E599]" aria-hidden="true"></span>
+              ACTIVE
+            </span>
+          </div>
+
+          <div class="tm-stage px-4 pt-4 pb-2 font-mono text-[11.5px] leading-[1.85]">
+            <!-- 1. EXPLAIN -->
+            <div class="tm-slide" role="group" aria-label="Explain mode demo">
+              <div class="tm-ln" style="--i:0"><span class="text-[#00E599]">$</span> <span class="text-white">explain</span> <span class="text-neutral-500">- line by line</span></div>
+              <div class="tm-ln" style="--i:1"><span class="text-neutral-500">&gt; parsing AST tree…</span> <span class="text-[#00E599]">OK (12 nodes)</span></div>
+              <div class="tm-ln" style="--i:2"><span class="text-white">def cluster</span><span class="text-[#FF8A4D]">(points, tolerance=0.5)</span><span class="text-white">:</span></div>
+              <div class="tm-ln" style="--i:3"><span class="text-neutral-500">&nbsp;&nbsp;&nbsp;&nbsp;# Group spatial points within epsilon</span></div>
+              <div class="tm-ln" style="--i:4"><span class="text-white">&nbsp;&nbsp;&nbsp;&nbsp;clusters = []</span></div>
+              <div class="tm-ln" style="--i:5"><span class="text-[#00E599]">✓ AST validated · O(N) complexity verified</span><span class="tm-caret" aria-hidden="true"></span></div>
+            </div>
+
+            <!-- 2. FIND ERRORS -->
+            <div class="tm-slide" role="group" aria-label="Find Errors mode demo">
+              <div class="tm-ln" style="--i:0"><span class="text-[#00E599]">$</span> <span class="text-white">error_finder</span> <span class="text-neutral-500">- syntax checked</span></div>
+              <div class="tm-ln" style="--i:1"><span class="text-neutral-500">&gt; scanning source for logic &amp; type regressions…</span></div>
+              <div class="tm-ln" style="--i:2"><span class="text-[#F2665D]">- if not clusters or dist(p, clusters[-1]) &gt; tol</span></div>
+              <div class="tm-ln" style="--i:3"><span class="text-[#00E599]">+ if not clusters or dist(p, clusters[-1][0]) &gt; tol</span></div>
+              <div class="tm-ln" style="--i:4"><span class="text-[#FF8A4D]">▲ fix: subscript indexing corrected (0 issues remain)</span><span class="tm-caret" aria-hidden="true"></span></div>
+            </div>
+
+            <!-- 3. GENERATE -->
+            <div class="tm-slide" role="group" aria-label="Generate mode demo">
+              <div class="tm-ln" style="--i:0"><span class="text-[#00E599]">$</span> <span class="text-white">generate</span> <span class="text-neutral-500">- verified</span></div>
+              <div class="tm-ln" style="--i:1"><span class="text-neutral-500">&gt; streaming token response (42ms latency)…</span></div>
+              <div class="tm-ln" style="--i:2"><span class="text-[#FF8A4D]">def fibonacci</span><span class="text-white">(n: int) -&gt; list[int]:</span></div>
+              <div class="tm-ln" style="--i:3"><span class="text-white">&nbsp;&nbsp;&nbsp;&nbsp;a, b = 0, 1</span></div>
+              <div class="tm-ln" style="--i:4"><span class="text-white">&nbsp;&nbsp;&nbsp;&nbsp;for _ in range(n):</span></div>
+              <div class="tm-ln" style="--i:5"><span class="text-white">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;yield a</span></div>
+              <div class="tm-ln" style="--i:6"><span class="text-white">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a, b = b, a + b</span></div>
+              <div class="tm-ln" style="--i:7"><span class="text-[#00E599]">✓ syntax verified · local AST passed · 0 errors</span><span class="tm-caret" aria-hidden="true"></span></div>
+            </div>
+
+            <!-- 4. OPTIMIZE -->
+            <div class="tm-slide" role="group" aria-label="Optimize mode demo">
+              <div class="tm-ln" style="--i:0"><span class="text-[#00E599]">$</span> <span class="text-white">optimize</span> <span class="text-neutral-500">- preserves behavior</span></div>
+              <div class="tm-ln" style="--i:1"><span class="text-neutral-500">&gt; profiling runtime &amp; memory footprint…</span></div>
+              <div class="tm-ln" style="--i:2"><span class="text-[#F2665D]">- return [x for x in data if x % 2 == 0]</span></div>
+              <div class="tm-ln" style="--i:3"><span class="text-[#00E599]">+ return filter(lambda x: not (x &amp; 1), data)</span></div>
+              <div class="tm-ln" style="--i:4"><span class="text-[#00E599]">⚡ 2.4x throughput gain</span> <span class="text-neutral-400">· zero side-effects verified</span><span class="tm-caret" aria-hidden="true"></span></div>
+            </div>
+
+            <!-- 5. REPO REPORT -->
+            <div class="tm-slide" role="group" aria-label="Repo Report mode demo">
+              <div class="tm-ln" style="--i:0"><span class="text-[#00E599]">$</span> <span class="text-white">repo_report</span> <span class="text-neutral-500">- full scan</span></div>
+              <div class="tm-ln" style="--i:1"><span class="text-neutral-500">&gt; indexing 42 files across <span class="text-[#FF8A4D]">main</span> branch…</span></div>
+              <div class="tm-ln" style="--i:2"><span class="text-neutral-400">├─ src/core/engine.py</span><span class="text-neutral-600">&nbsp;&nbsp;&nbsp;</span><span class="text-[#00E599]">[✓ 100% verified]</span></div>
+              <div class="tm-ln" style="--i:3"><span class="text-neutral-400">├─ src/api/routes.py</span><span class="text-neutral-600">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="text-[#00E599]">[✓ clean]</span></div>
+              <div class="tm-ln" style="--i:4"><span class="text-neutral-400">└─ src/db/session.py</span><span class="text-neutral-600">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="text-[#00E599]">[✓ zero leaks]</span></div>
+              <div class="tm-ln" style="--i:5"><span class="text-[#00E599]">📊 42/42 modules mapped</span> <span class="text-neutral-400">· local hash synced</span><span class="tm-caret" aria-hidden="true"></span></div>
+            </div>
+          </div>
+
+          <!-- Navigation dots / progress pills -->
+          <div class="mt-3 flex flex-wrap items-center justify-center gap-1.5 border-t border-white/[0.06] px-4 pt-3 pb-4">
+            <button type="button" data-goto="0" class="tm-dot rounded-full border border-white/[0.1] px-2.5 py-1 font-mono text-[10px] text-neutral-500 hover:text-white" aria-label="Jump to Explain demo">Explain</button>
+            <button type="button" data-goto="1" class="tm-dot rounded-full border border-white/[0.1] px-2.5 py-1 font-mono text-[10px] text-neutral-500 hover:text-white" aria-label="Jump to Find Errors demo">Errors</button>
+            <button type="button" data-goto="2" class="tm-dot rounded-full border border-white/[0.1] px-2.5 py-1 font-mono text-[10px] text-neutral-500 hover:text-white" aria-label="Jump to Generate demo">Generate</button>
+            <button type="button" data-goto="3" class="tm-dot rounded-full border border-white/[0.1] px-2.5 py-1 font-mono text-[10px] text-neutral-500 hover:text-white" aria-label="Jump to Optimize demo">Optimize</button>
+            <button type="button" data-goto="4" class="tm-dot rounded-full border border-white/[0.1] px-2.5 py-1 font-mono text-[10px] text-neutral-500 hover:text-white" aria-label="Jump to Repo Report demo">Repo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom micro metrics -->
+    <div class="border-t border-white/[0.06]">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center gap-x-10 gap-y-3 font-mono text-[11px] text-neutral-500">
+        <span class="inline-flex items-center gap-2">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-[#FF6B2B]" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg>
+          LATENCY <span class="text-[#00E599]">&lt;900ms</span>
+        </span>
+        <span class="inline-flex items-center gap-2">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-[#00E599]" aria-hidden="true"><path d="M8 12h8M10 8l6 4-6 4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          MODELS <span class="text-[#FF8A4D]">OPEN</span>
+        </span>
+        <span class="inline-flex items-center gap-2">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-[#00E599]" aria-hidden="true"><path d="M12 2 20 4v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V4Z"/><path d="m9 12 2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          VERIFY <span class="text-[#00E599]">LOCAL</span>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. WHY YUKTI -->
+  <section class="py-20 lg:py-24 bg-[#060608] border-y border-white/[0.04]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-10">
+      <div>
+        <div class="font-mono text-xs font-semibold text-[#FF5B00] uppercase tracking-widest lg:sticky lg:top-24">WHY YUKTI</div>
+      </div>
+      <div class="max-w-2xl min-w-0">
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+          A mentor that sees your actual code — not a generic essay.
+        </h2>
+        <p class="mt-4 text-neutral-400 text-base leading-relaxed">
+          Most assistants answer with plausible prose. YUKTI works differently: every mode reasons over the code you give it, reads your repository for context, and returns results checked against syntax and scope — not guesses.
+        </p>
+        <ul class="mt-6 space-y-3">
+          <li class="flex items-start gap-3">
+            <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#10B981]/15 text-[#00E599]" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m4.5 12.5 5 5 10-11" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="text-sm text-neutral-300">Code verification built into generate, errors &amp; optimize</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#10B981]/15 text-[#00E599]" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m4.5 12.5 5 5 10-11" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="text-sm text-neutral-300">Session memory folds long threads into a running summary</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#10B981]/15 text-[#00E599]" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m4.5 12.5 5 5 10-11" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="text-sm text-neutral-300">Repo scanning that maps structure, not just surfaces</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. FIVE-WAY MODE GRID -->
+  <section id="modes" class="py-20 lg:py-24 border-b border-white/[0.06] bg-[#020202]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="font-mono text-xs font-semibold text-[#FF5B00] uppercase tracking-widest mb-2">MENTOR MODES</div>
+      <div class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Five ways to work with your code</div>
+      <p class="mt-2 text-neutral-400 text-sm sm:text-base">Pick a mode and go. Each one is a specialized lens over the same engine.</p>
+
+      <div class="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <a href="/app?mode=explain" class="group min-w-0 rounded-xl border border-white/[0.08] bg-[#0A0A0C] p-5 transition-colors hover:border-[#FF5B00]/40 hover:bg-[#0C0A08]">
+          <div class="flex items-center gap-3">
+            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-[#FF5B00]/15 text-[#FF6B2B] transition group-hover:bg-[#FF5B00] group-hover:text-black" aria-hidden="true">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5 20 12l-8 8.5L4 12Z"/></svg>
+            </span>
+            <h3 class="text-[15px] font-bold text-white">Explain</h3>
+          </div>
+          <p class="mt-3.5 font-mono text-[12px] text-[#FF8A4D]">&gt; explain - line by line</p>
+        </a>
+
+        <a href="/app?mode=error_finder" class="group min-w-0 rounded-xl border border-white/[0.08] bg-[#0A0A0C] p-5 transition-colors hover:border-[#FF5B00]/40 hover:bg-[#0C0A08]">
+          <div class="flex items-center gap-3">
+            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-[#FF5B00]/15 text-[#FF6B2B] transition group-hover:bg-[#FF5B00] group-hover:text-black" aria-hidden="true">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v6" stroke-linecap="round"/><circle cx="12" cy="17" r="0.6" fill="currentColor"/></svg>
+            </span>
+            <h3 class="text-[15px] font-bold text-white">Find Errors</h3>
+          </div>
+          <p class="mt-3.5 font-mono text-[12px] text-[#FF8A4D]">&gt; error_finder - syntax checked</p>
+        </a>
+
+        <a href="/app?mode=generate" class="group min-w-0 rounded-xl border border-white/[0.08] bg-[#0A0A0C] p-5 transition-colors hover:border-[#FF5B00]/40 hover:bg-[#0C0A08]">
+          <div class="flex items-center gap-3">
+            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-[#FF5B00]/15 text-[#FF6B2B] transition group-hover:bg-[#FF5B00] group-hover:text-black" aria-hidden="true">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+            </span>
+            <h3 class="text-[15px] font-bold text-white">Generate</h3>
+          </div>
+          <p class="mt-3.5 font-mono text-[12px] text-[#FF8A4D]">&gt; generate - verified</p>
+        </a>
+
+        <a href="/app?mode=optimize" class="group min-w-0 rounded-xl border border-white/[0.08] bg-[#0A0A0C] p-5 transition-colors hover:border-[#FF5B00]/40 hover:bg-[#0C0A08]">
+          <div class="flex items-center gap-3">
+            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-[#FF5B00]/15 text-[#FF6B2B] transition group-hover:bg-[#FF5B00] group-hover:text-black" aria-hidden="true">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5 21.5 20h-19Z"/></svg>
+            </span>
+            <h3 class="text-[15px] font-bold text-white">Optimize</h3>
+          </div>
+          <p class="mt-3.5 font-mono text-[12px] text-[#FF8A4D]">&gt; optimize - preserves behavior</p>
+        </a>
+
+        <a href="/app?mode=repo_report" class="group min-w-0 rounded-xl border border-white/[0.08] bg-[#0A0A0C] p-5 transition-colors hover:border-[#FF5B00]/40 hover:bg-[#0C0A08]">
+          <div class="flex items-center gap-3">
+            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-[#FF5B00]/15 text-[#FF6B2B] transition group-hover:bg-[#FF5B00] group-hover:text-black" aria-hidden="true">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 20 4v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V4Z"/><path d="m8.5 12 2.5 2.5 5-5.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <h3 class="text-[15px] font-bold text-white">Repo Report</h3>
+          </div>
+          <p class="mt-3.5 font-mono text-[12px] text-[#FF8A4D]">&gt; repo_report - full scan</p>
+        </a>
+
+        <div class="flex min-w-0 flex-col items-start justify-between gap-5 rounded-xl border border-white/[0.1] bg-[#0A0A0C] p-5">
+          <div>
+            <h3 class="text-[15px] font-bold text-white">Explore all modes →</h3>
+            <p class="mt-2 text-xs text-neutral-400">Explanations, error detection, generation, optimization, and full repository reports — documented end to end.</p>
+          </div>
+          <a href="/modes.html" class="inline-flex items-center gap-1.5 rounded-md border border-[#26282E] bg-[#121316] px-4 py-2 text-xs font-mono font-medium text-neutral-200 transition-colors hover:border-[#FF6B2B]/40 hover:text-white">
+            See the modes
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. PIPELINE ARCHITECTURE -->
+  <section id="platform" class="py-20 lg:py-28 bg-[#060608] border-y border-white/[0.04]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="font-mono text-xs font-semibold text-[#FF5B00] uppercase tracking-widest mb-2">THE PIPELINE</div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">An observability-grade pipeline</h2>
+      <p class="mt-2 text-neutral-400 text-sm sm:text-base">Every answer is a pipeline: context, reasoning, verification, measurement.</p>
+
+      <div class="mt-12 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-[#0A0A0C] border border-white/[0.08] p-5 rounded-xl min-w-0">
+          <span class="font-mono text-[11px] font-bold text-[#FF5B00]">01</span>
+          <h3 class="text-white font-bold text-base mt-2">Context</h3>
+          <p class="mt-2 text-xs text-neutral-400 leading-relaxed">Repo summary, prior session turns, and folded memory feed a single request.</p>
+          <div class="text-right text-neutral-600 font-mono text-xs mt-4" aria-hidden="true">→</div>
+        </div>
+
+        <div class="bg-[#0A0A0C] border border-white/[0.08] p-5 rounded-xl min-w-0">
+          <span class="font-mono text-[11px] font-bold text-[#FF5B00]">02</span>
+          <h3 class="text-white font-bold text-base mt-2">Reason</h3>
+          <p class="mt-2 text-xs text-neutral-400 leading-relaxed">A specialized planner routes to the right model and prompt for the mode.</p>
+          <div class="text-right text-neutral-600 font-mono text-xs mt-4" aria-hidden="true">→</div>
+        </div>
+
+        <div class="bg-[#0A0A0C] border border-white/[0.08] p-5 rounded-xl min-w-0">
+          <span class="font-mono text-[11px] font-bold text-[#FF5B00]">03</span>
+          <h3 class="text-white font-bold text-base mt-2">Verify</h3>
+          <p class="mt-2 text-xs text-neutral-400 leading-relaxed">Generated and edited code is parsed and syntax-checked locally.</p>
+          <div class="text-right text-neutral-600 font-mono text-xs mt-4" aria-hidden="true">→</div>
+        </div>
+
+        <div class="bg-[#0A0A0C] border border-white/[0.08] p-5 rounded-xl min-w-0">
+          <span class="font-mono text-[11px] font-bold text-[#FF5B00]">04</span>
+          <h3 class="text-white font-bold text-base mt-2">Measure</h3>
+          <p class="mt-2 text-xs text-neutral-400 leading-relaxed">Every turn records tokens, cost, latency, and context size.</p>
+          <div class="text-right text-neutral-600 font-mono text-xs mt-4" aria-hidden="true">✓</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. TRUST MATRIX -->
+  <section id="security" class="py-20 lg:py-28 border-b border-white/[0.06] bg-[#020202]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="font-mono text-xs font-semibold text-[#FF5B00] uppercase tracking-widest mb-2">TRUST BY CONSTRUCTION</div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Code that's checked, not just claimed</h2>
+
+      <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-[#0A0A0C] border border-white/[0.08] p-6 rounded-xl min-w-0">
+          <h3 class="text-white font-bold text-base flex items-center gap-2">
+            <span class="grid h-8 w-8 place-items-center rounded-lg bg-[#FF5B00]/10 border border-[#FF5B00]/25 text-[#FF6B2B] shrink-0" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="m9 12 2 2 4-4"/>
+              </svg>
+            </span> Local verification
+          </h3>
+          <p class="mt-3 text-sm text-neutral-400 leading-relaxed">
+            Backend parses and checks code blocks for the modes that produce code. A green verdict means the delivered block actually parses.
+          </p>
+        </div>
+
+        <div class="bg-[#0A0A0C] border border-white/[0.08] p-6 rounded-xl min-w-0">
+          <h3 class="text-white font-bold text-base flex items-center gap-2">
+            <span class="grid h-8 w-8 place-items-center rounded-lg bg-[#FF5B00]/10 border border-[#FF5B00]/25 text-[#FF6B2B] shrink-0" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </span> Local-first
+          </h3>
+          <p class="mt-3 text-sm text-neutral-400 leading-relaxed">
+            YUKTI never executes the code it generates. Your repository is scanned and summarized in-place, with your session data kept on your own machine.
+          </p>
+        </div>
+
+        <div class="bg-[#0A0A0C] border border-white/[0.08] p-6 rounded-xl min-w-0">
+          <h3 class="text-white font-bold text-base flex items-center gap-2">
+            <span class="grid h-8 w-8 place-items-center rounded-lg bg-[#FF5B00]/10 border border-[#FF5B00]/25 text-[#FF6B2B] shrink-0" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 3v16a2 2 0 0 0 2 2h16"/>
+                <path d="M8 17v-4"/>
+                <path d="M13 17V7"/>
+                <path d="M18 17v-8"/>
+              </svg>
+            </span> Held to account
+          </h3>
+          <p class="mt-3 text-sm text-neutral-400 leading-relaxed">
+            Every turn is logged with model, provider, latency, token spend, and context size — you can see exactly what happened and what it cost.
+          </p>
+        </div>
+
+        <div class="bg-[#0A0A0C] border border-white/[0.08] p-6 rounded-xl min-w-0">
+          <h3 class="text-white font-bold text-base flex items-center gap-2">
+            <span class="grid h-8 w-8 place-items-center rounded-lg bg-[#FF5B00]/10 border border-[#FF5B00]/25 text-[#FF6B2B] shrink-0" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/>
+                <path d="m22 17.65-9.17 4.17a2 2 0 0 1-1.66 0L2 17.65"/>
+                <path d="m22 12.65-9.17 4.17a2 2 0 0 1-1.66 0L2 12.65"/>
+              </svg>
+            </span> Session memory
+          </h3>
+          <p class="mt-3 text-sm text-neutral-400 leading-relaxed">
+            Long conversations are folded into a running summary, so the mentor stays coherent without losing the thread.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. LIVE USAGE ANALYTICS -->
+  <section class="py-20 lg:py-28 border-b border-white/[0.06] bg-[#000000]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-w-0">
+      <div class="relative overflow-hidden bg-[#0A0A0C] border border-white/[0.08] p-6 rounded-xl min-w-0">
+        <div class="pointer-events-none absolute -top-12 -left-12 w-48 h-48 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-[#FF5B00]/15 to-transparent blur-xl"></div>
+        <div class="flex items-center gap-2 font-mono text-xs text-neutral-400 mb-6">
+          <span class="truncate">GET /stats - live</span>
+          <span class="text-[#FF5B00] border border-[#FF5B00]/40 bg-[#FF5B00]/10 px-2 py-0.5 rounded text-[10px] shrink-0">real data</span>
+        </div>
+        <div class="grid grid-cols-4 gap-2 sm:gap-4 text-center font-mono">
+          <div class="min-w-0">
+            <div class="text-3xl sm:text-4xl font-extrabold text-white">9,592</div>
+            <div class="text-[10px] text-neutral-500 tracking-wider mt-1 uppercase">TOKENS</div>
+          </div>
+          <div class="min-w-0">
+            <div class="text-3xl sm:text-4xl font-extrabold text-white">6</div>
+            <div class="text-[10px] text-neutral-500 tracking-wider mt-1 uppercase">SESSIONS</div>
+          </div>
+          <div class="min-w-0">
+            <div class="text-3xl sm:text-4xl font-extrabold text-white">4</div>
+            <div class="text-[10px] text-neutral-500 tracking-wider mt-1 uppercase">TURNS</div>
+          </div>
+          <div class="min-w-0">
+            <div class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">$0.010</div>
+            <div class="text-[10px] text-neutral-500 tracking-wider mt-2 uppercase">COST</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="min-w-0">
+        <div class="font-mono text-xs font-semibold text-[#FF5B00] uppercase tracking-widest mb-2">USAGE ANALYTICS</div>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+          Know what your mentor actually did
+        </h2>
+        <p class="mt-4 text-neutral-400 text-base leading-relaxed">
+          The analytics page reads the live /stats endpoint — real sessions, turns, tokens, cost, and per-feature breakdowns. No invented dashboards, no demo numbers.
+        </p>
+        <div class="mt-6">
+          <a href="/telemetry.html" class="inline-flex items-center gap-1.5 text-xs font-mono font-medium text-neutral-200 border border-white/[0.1] bg-[#121316] hover:bg-white/[0.05] px-4 py-2.5 rounded-md transition">
+            View analytics →
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. DOCUMENTATION CALLOUT -->
+  <section class="py-16 bg-[#060608] border-y border-white/[0.04]">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6">
+      <div class="relative overflow-hidden bg-[#0A0A0C] border border-white/[0.08] p-8 sm:p-10 rounded-2xl text-center shadow-[0_0_50px_rgba(255,91,0,0.06)]">
+        <div class="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-48 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#FF5B00]/25 via-[#FF5B00]/5 to-transparent blur-2xl"></div>
+        <div class="font-mono text-xs font-semibold text-[#FF5B00] uppercase tracking-widest mb-2">DOCUMENTATION</div>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-white">From first prompt to full API</h2>
+        <p class="mt-3 text-neutral-400 text-sm max-w-lg mx-auto">
+          Setup, modes, languages, sessions, the verification contract, the repository scanner, and the complete API — all in one place.
+        </p>
+        <div class="mt-6">
+          <a href="/docs.html" class="inline-block bg-[#FF5B00] hover:bg-[#FF6B2B] text-black text-xs font-bold px-5 py-3 rounded-md shadow-sm transition">
+            Read the docs →
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. FINAL CTA -->
+  <section class="py-24 text-center bg-[#000000]">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6">
+      <h2 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">Give it real code. See it understood.</h2>
+      <p class="mt-4 text-neutral-400 text-base">The playground is one click away. Paste a snippet, pick a mode, and watch YUKTI work.</p>
+      <div class="mt-8">
+        <a href="/app" class="inline-block bg-[#FF5B00] hover:bg-[#FF6B2B] text-black font-bold text-sm px-6 py-3.5 rounded-md shadow-sm hover:shadow-[0_0_15px_rgba(255,91,0,0.25)] transition">
+          Launch the Playground
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. FOOTER -->
+  <footer class="border-t border-white/[0.08] bg-[#08080B]/90 backdrop-blur-md text-neutral-400 text-xs py-14">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
+      <div class="lg:col-span-2">
+        <div class="flex items-center gap-2.5 font-extrabold tracking-tight text-white text-sm">
+          <svg class="h-6 w-6 shrink-0" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+            <path d="M54 41L84 16L72 31L54 41Z" fill="url(#yukti-orange)" />
+            <path d="M20 29L36 29L51 46L42 76L42 46L20 29Z" fill="#FFFFFF" />
+            <path d="M51 46L75 34L42 76L51 46Z" fill="url(#yukti-orange)" />
+            <defs>
+              <linearGradient id="yukti-orange" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FF8A4D" />
+                <stop offset="100%" stop-color="#FF5B00" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <span>YUKTI</span>
+        </div>
+        <p class="mt-3 text-neutral-500 text-xs leading-relaxed max-w-sm">
+          Your AI programming mentor — explaining, debugging, generating, and optimizing against your own code, locally.
+        </p>
+      </div>
+
+      <div>
+        <div class="font-mono text-[11px] text-white font-semibold uppercase tracking-wider mb-3">Product</div>
+        <ul class="space-y-2">
+          <li><a href="/platform.html" class="hover:text-white transition">Platform</a></li>
+          <li><a href="/modes.html" class="hover:text-white transition">Mentor Modes</a></li>
+          <li><a href="/app" class="hover:text-white transition">Playground</a></li>
+          <li><a href="/telemetry.html" class="hover:text-white transition">Analytics</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <div class="font-mono text-[11px] text-white font-semibold uppercase tracking-wider mb-3">Resources</div>
+        <ul class="space-y-2">
+          <li><a href="/docs.html" class="hover:text-white transition">Documentation</a></li>
+          <li><a href="/docs.html#api" class="hover:text-white transition">API reference</a></li>
+          <li><a href="/docs.html#settings" class="hover:text-white transition">Configuration</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <div class="font-mono text-[11px] text-white font-semibold uppercase tracking-wider mb-3">Company</div>
+        <ul class="space-y-2">
+          <li><a href="/about.html" class="hover:text-white transition">About</a></li>
+          <li><a href="#security" class="hover:text-white transition">Security</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 mt-12 pt-6 border-t border-white/[0.04] flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px] text-neutral-600">
+      <div>© 2026 YUKTI. All rights reserved.</div>
+      <div>LOCAL-FIRST · NO CODE EXECUTION</div>
+    </div>
+  </footer>
+
+  <!-- Mode carousel controller -->
+  <script>
+    (function () {
+      var wrap = document.getElementById('modeCarousel');
+      if (!wrap) return;
+      var slides = Array.prototype.slice.call(wrap.querySelectorAll('.tm-slide'));
+      var dots = Array.prototype.slice.call(wrap.querySelectorAll('.tm-dot[data-goto]'));
+      if (!slides.length) return;
+      var cur = 0, timer = null;
+
+      function activate(i) {
+        slides[cur].classList.remove('active');
+        dots[cur].classList.remove('active');
+        dots[cur].setAttribute('aria-current', 'false');
+        cur = (i + slides.length) % slides.length;
+        slides[cur].classList.add('active');
+        dots[cur].classList.add('active');
+        dots[cur].setAttribute('aria-current', 'true');
+      }
+      function next() { activate(cur + 1); }
+      function start() {
+        if (timer) clearInterval(timer);
+        timer = setInterval(next, 3000);
+      }
+      dots.forEach(function (d, i) {
+        d.addEventListener('click', function () { activate(i); start(); });
+      });
+      activate(0);
+      start();
+    })();
+  </script>
+
+  <!-- Cursor-follower spotlight -->
+  <script>
+    (function () {
+      var glow = document.getElementById('cursor-glow');
+      if (!glow) return;
+      window.addEventListener('mousemove', function (e) {
+        glow.style.opacity = '1';
+        glow.style.transform = 'translate3d(' + e.clientX + 'px, ' + e.clientY + 'px, 0) translate(-50%, -50%)';
+      });
+      document.addEventListener('mouseleave', function () {
+        glow.style.opacity = '0';
+      });
+    })();
+  </script>
+
 </body>
 </html>

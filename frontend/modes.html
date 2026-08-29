@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="YUKTI modes — Explain, Find Errors, Generate, Optimize, and Repo Report. Five focused mentors over one verified engine." />
+  <meta name="theme-color" content="#000000" />
+  <title>Mentor Modes — YUKTI</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            canvas: "#000000", surface: "#0A0A0C", elevated: "#101012", deep: "#06060A",
+            orange: { DEFAULT: "#FF5B00", b: "#FF6B2B", a: "#FF8A4D" },
+            green: { DEFAULT: "#10B981", t: "#00E599" },
+            ink: { DEFAULT: "#FCFDFF", body: "rgba(252,253,255,0.86)", muted: "#A1A4A5" }
+          },
+          fontFamily: {
+            display: ['"Plus Jakarta Sans"', '"Inter"', 'sans-serif'],
+            body: ['"Inter"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+
+  <div id="cursor-glow" class="pointer-events-none fixed top-0 left-0 w-[550px] h-[550px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0 transition-opacity duration-300 z-30"
+       style="background: radial-gradient(circle, rgba(255,91,0,0.14) 0%, rgba(255,91,0,0.04) 45%, transparent 70%); will-change: transform;"></div>
+
+  <header class="nav-bar" id="navBar">
+    <div class="container-x nav-inner">
+      <a class="logo" href="/" aria-label="YUKTI home">
+        <svg class="logo-mark" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+          <path d="M54 41L84 16L72 31L54 41Z" fill="url(#yukti-o)" />
+          <path d="M20 29L36 29L51 46L42 76L42 46L20 29Z" fill="#FFFFFF" />
+          <path d="M51 46L75 34L42 76L51 46Z" fill="url(#yukti-o)" />
+          <defs>
+            <linearGradient id="yukti-o" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FF8A4D" />
+              <stop offset="100%" stop-color="#FF5B00" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="logo-name">YUKTI</span>
+      </a>
+      <nav class="nav-links" id="navLinks">
+        <a class="nav-link" href="/platform.html">Platform</a>
+        <a class="nav-link is-active" href="/modes.html">Mentor Modes</a>
+        <a class="nav-link" href="/telemetry.html">Analytics</a>
+        <a class="nav-link" href="/docs.html">Docs</a>
+      </nav>
+      <div class="nav-end">
+        <a class="btn btn-primary btn-mono" href="/app">Open Playground →</a>
+        <button class="icon-btn nav-burger" id="navBurger" type="button" aria-label="Menu" aria-expanded="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="mobile-panel" id="mobilePanel">
+      <a class="nav-link" href="/platform.html">Platform</a>
+      <a class="nav-link" href="/modes.html">Mentor Modes</a>
+      <a class="nav-link" href="/telemetry.html">Analytics</a>
+      <a class="nav-link" href="/docs.html">Docs</a>
+      <a class="btn btn-primary btn-mono mt-3" href="/app">Open Playground →</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container-x" style="max-width:1000px">
+        <span class="micro-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 5h16M4 5v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5"/><path d="M9 3v4M15 3v4"/></svg><span>[MODE_REGISTRY :: <span class="brk">5 VERIFIED OPERATORS</span>]</span></span>
+        <h1 style="font-size:clamp(34px,5vw,54px)">Five focused modes.<br /><span class="grad-orange">One verified engine.</span></h1>
+        <p class="hero-sub">Each mode is a specialized mentor: its own instruction sheet, its own routing, and its own verification rules — over the same proven pipeline.</p>
+        <div class="hero-ctas">
+          <a class="btn btn-primary btn-lg" href="/app">Open the Playground →</a>
+          <a class="btn btn-ghost btn-lg" href="#modes">Jump to the catalog</a>
+        </div>
+      </div>
+      <span class="grid-dots" aria-hidden="true"></span>
+    </section>
+
+    <section class="section" id="modes">
+      <div class="container-x" style="max-width:1000px">
+        <div class="section-tag">MODE SHEETS</div>
+        <h2 class="section-title">The catalog</h2>
+        <div class="divider-orange"></div>
+
+        <!-- 01 EXPLAIN -->
+        <article class="mode-sheet reveal" id="explain">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="mode-id">MODE_01</span>
+            <span class="chip chip-orange">EXPLAIN</span>
+            <span class="chip">KEY <code class="mono">explain</code></span>
+          </div>
+          <h3 class="mode-title">Literally explain it to me</h3>
+          <p class="mode-desc">Breaks down code line by line, identifies its role in the file, and flags suspicious or unclear patterns. The language tutors skip; this mentor doesn't.</p>
+          <div class="mode-facts">
+            <div class="mode-fact"><div class="k">SHEET</div><div class="v">Explain each line · summarize purpose · flag red flags · reply in your language.</div></div>
+            <div class="mode-fact green"><div class="k">VERIFY</div><div class="v">Output safety-scanned; no code blocks executed.</div></div>
+            <div class="mode-fact"><div class="k">OUTPUT</div><div class="v">Readable breakdown with metrics recorded per turn.</div></div>
+          </div>
+          <a class="btn btn-primary btn-mono btn-sm" style="margin-top:20px" href="/app?mode=explain">RUN MODE_01 →</a>
+        </article>
+
+        <!-- 02 ERROR FINDER -->
+        <article class="mode-sheet reveal" id="error_finder">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="mode-id">MODE_02</span>
+            <span class="chip chip-orange">FIND ERRORS</span>
+            <span class="chip">KEY <code class="mono">error_finder</code></span>
+          </div>
+          <h3 class="mode-title">Find my errors</h3>
+          <p class="mode-desc">Scans the block for exceptions, compile-time errors, and logical bugs — with concrete fixes. Intended behavior is kept intact.</p>
+          <div class="mode-facts">
+            <div class="mode-fact"><div class="k">SHEET</div><div class="v">Find exceptions &amp; compile errors · explain each · fix with concrete code changes · preserve behavior.</div></div>
+            <div class="mode-fact green"><div class="k">VERIFY</div><div class="v">Input is pre-checked for syntax issues before routing.</div></div>
+            <div class="mode-fact"><div class="k">OUTPUT</div><div class="v">Issue list + fixed code, with verification verdict.</div></div>
+          </div>
+          <a class="btn btn-primary btn-mono btn-sm" style="margin-top:20px" href="/app?mode=error_finder">RUN MODE_02 →</a>
+        </article>
+
+        <!-- 03 GENERATE -->
+        <article class="mode-sheet reveal" id="generate">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="mode-id">MODE_03</span>
+            <span class="chip chip-green">GENERATE</span>
+            <span class="chip">KEY <code class="mono">generate</code></span>
+          </div>
+          <h3 class="mode-title">Generate code</h3>
+          <p class="mode-desc">Produces a single, runnable code block from a plain-language spec — syntax-verified locally before it ever reaches you.</p>
+          <div class="mode-facts">
+            <div class="mode-fact"><div class="k">SHEET</div><div class="v">Single block of runnable code · plain-language explanation · routed to a code-capable model.</div></div>
+            <div class="mode-fact green"><div class="k">VERIFY</div><div class="v">Parse-only check: blocks parsed, issues reported. Nothing executed.</div></div>
+            <div class="mode-fact"><div class="k">OUTPUT</div><div class="v">Verified code + verdict + token/cost readout.</div></div>
+          </div>
+          <a class="btn btn-primary btn-mono btn-sm" style="margin-top:20px" href="/app?mode=generate">RUN MODE_03 →</a>
+        </article>
+
+        <!-- 04 OPTIMIZER -->
+        <article class="mode-sheet reveal" id="optimizer">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="mode-id">MODE_04</span>
+            <span class="chip chip-orange">OPTIMIZE</span>
+            <span class="chip">KEY <code class="mono">optimizer</code></span>
+          </div>
+          <h3 class="mode-title">Optimize my code</h3>
+          <p class="mode-desc">Rewrites the slow parts you point at — faster algorithms, fewer allocations — while keeping behavior identical.</p>
+          <div class="mode-facts">
+            <div class="mode-fact"><div class="k">SHEET</div><div class="v">Rewrite only flagged snippets · target speed &amp; clarity · preserve behavior exactly · ship a perf note.</div></div>
+            <div class="mode-fact green"><div class="k">VERIFY</div><div class="v">Behavior contract enforced; output parse-checked.</div></div>
+            <div class="mode-fact"><div class="k">OUTPUT</div><div class="v">Optimized code with a performance delta note.</div></div>
+          </div>
+          <a class="btn btn-primary btn-mono btn-sm" style="margin-top:20px" href="/app?mode=optimizer">RUN MODE_04 →</a>
+        </article>
+
+        <!-- 05 REPO REPORT -->
+        <article class="mode-sheet reveal" id="repo_report">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="mode-id">MODE_05</span>
+            <span class="chip chip-green">REPO REPORT</span>
+            <span class="chip">KEY <code class="mono">repo_report</code></span>
+          </div>
+          <h3 class="mode-title">Full repository report</h3>
+          <p class="mode-desc">A structured walkthrough of your working directory — layout, patterns, entry points, and hotspots — from real files, not guesses.</p>
+          <div class="mode-facts">
+            <div class="mode-fact"><div class="k">SHEET</div><div class="v">Walk the API tree for real files · ignore vendor paths · summarize layout, patterns, hotspots.</div></div>
+            <div class="mode-fact green"><div class="k">VERIFY</div><div class="v">Scans only the working directory; nothing is shipped out.</div></div>
+            <div class="mode-fact"><div class="k">OUTPUT</div><div class="v">Tree summary + architecture notes, stored in your session.</div></div>
+          </div>
+          <a class="btn btn-primary btn-mono btn-sm" style="margin-top:20px" href="/app?mode=repo_report">RUN MODE_05 →</a>
+        </article>
+
+        <div class="cta-band" style="margin-top:40px;display:grid;place-items:center;text-align:center;gap:14px">
+          <span class="chip chip-green"><span class="status-dot"></span>&nbsp; ALL MODES OPERATIONAL</span>
+          <h2 class="section-title" style="font-size:clamp(24px,3vw,32px)">Every mode. One pipeline. Verified before shown.</h2>
+          <a class="btn btn-primary btn-lg" href="/app">Launch the Playground →</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container-x footer-grid">
+      <div>
+        <a class="logo" href="/">
+          <svg class="logo-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <g transform="translate(16,16)"><polygon points="0,-13 11.26,-6.5 11.26,6.5 0,13 -11.26,6.5 -11.26,-6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="0" cy="0" r="3.6" fill="currentColor"/></g>
+          </svg>
+          <span class="logo-name">YUKTI</span>
+        </a>
+        <p class="footer-desc">Verified, measured, locally-dispatched programming mentors. Your code stays on your machine — forever.</p>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <a class="footer-link" href="/platform.html">Platform</a>
+        <a class="footer-link" href="/modes.html">Mentor Modes</a>
+        <a class="footer-link" href="/telemetry.html">Analytics</a>
+        <a class="footer-link" href="/app">Playground</a>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <a class="footer-link" href="/about.html">About</a>
+        <a class="footer-link" href="/docs.html">Docs</a>
+        <a class="footer-link" href="/faq.html">FAQ</a>
+      </div>
+      <div>
+        <h4>Support</h4>
+        <a class="footer-link" href="/faq.html">Trust &amp; Security FAQ</a>
+        <a class="footer-link" href="/docs.html#api">API Reference</a>
+        <a class="footer-link" href="/docs.html#cli">CLI Reference</a>
+      </div>
+    </div>
+    <div class="footer-bottom container-x">
+      <span>© <span data-year>2026</span> YUKTI. All rights reserved.</span>
+      <span style="display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="select-pill lock-tag"><span class="status-dot"></span>&nbsp; LOCAL-FIRST · NO CODE EXECUTION</span>
+      </span>
+    </div>
+  </footer>
+
+  <a class="back-top" id="backTop" href="#top" aria-label="Back to top">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  </a>
+
+  <script src="js/app.js" defer></script>
+</body>
+</html>

@@ -34,5 +34,11 @@ yarn-error.log*
 .idea/*
 !.idea/runConfigurations/
 
+# Local dev logs & scratch runners
+/*.log
+/overflow_diag.js
+/shot.js
+/verify_*.js
+
 .vercel
 .netlify
