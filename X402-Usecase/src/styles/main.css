@@ -60,3 +60,94 @@ pre code {
   @apply text-cyan-700 font-medium;
 }
 
+/* TacticalHero micro-interactions */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+.animate-fade-up {
+  animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* YUKTI Playground — hidden scrollbars */
+.mentor-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.mentor-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* YUKTI markdown body */
+.mentor-markdown p,
+.mentor-markdown ul,
+.mentor-markdown ol,
+.mentor-markdown pre,
+.mentor-markdown blockquote,
+.mentor-markdown h1,
+.mentor-markdown h2,
+.mentor-markdown h3 {
+  margin: 0 0 0.6rem;
+}
+.mentor-markdown > *:last-child {
+  margin-bottom: 0;
+}
+.mentor-markdown code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  background: #1a1c20;
+  border: 1px solid #26282e;
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+  color: #00e599;
+}
+.mentor-markdown pre {
+  background: #0b0c0f;
+  border: 1px solid #22242a;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.mentor-markdown pre::-webkit-scrollbar {
+  display: none;
+}
+.mentor-markdown pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: #e6e8ee;
+  line-height: 1.6;
+}
+.mentor-markdown a {
+  color: #ff6b2b;
+  text-decoration: underline;
+}
+
+
+/* TacticalHero micro-interactions */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+.animate-fade-up {
+  animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}

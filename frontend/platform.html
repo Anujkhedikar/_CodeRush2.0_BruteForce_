@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="YUKTI platform — the internal architecture of the engine: local token management, AST verification gates, zero-execution security boundaries, and telemetry dispatch." />
+  <meta name="theme-color" content="#000000" />
+  <title>Platform — Engine Architecture · YUKTI</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            canvas: '#000000',
+            card: '#0A0A0C',
+            elevated: '#101012',
+            deep: '#06060A',
+            primary: '#FF5B00',
+            'primary-glow': '#FF6B2B',
+            emerald: '#10B981',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { overflow-x: hidden; }
+    body {
+      background-color: #000000;
+      color: #FCFDFF;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+    .bg-dots {
+      background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 26px 26px;
+    }
+    /* ---------- Interactive flow stages ---------- */
+    .fc-flow { display: flex; flex-direction: column; gap: 10px; }
+    .fc-arr {
+      align-self: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #FF6B2B;
+      transform: rotate(90deg);
+      line-height: 1;
+      text-align: center;
+      user-select: none;
+    }
+    .fc-stage {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      text-align: left;
+      width: 100%;
+      padding: 18px 20px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: #0A0A0C;
+      color: inherit;
+      cursor: pointer;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+      font: inherit;
+    }
+    .fc-stage:hover { border-color: rgba(255, 255, 255, 0.2); }
+    .fc-stage.on {
+      border-color: #FF5B00;
+      background: linear-gradient(180deg, rgba(255, 91, 0, 0.07), rgba(255, 91, 0, 0.01));
+      box-shadow: 0 0 35px -10px rgba(255, 91, 0, 0.45);
+    }
+    .fc-num {
+      flex-shrink: 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: #A1A4A5;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 8px;
+      padding: 5px 9px;
+    }
+    .fc-stage.on .fc-num { color: #FF8A4D; border-color: #FF5B00; }
+    .fc-title { font-weight: 700; font-size: 15px; color: #ffffff; }
+    .fc-tag { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #A1A4A5; margin-top: 3px; }
+    .fc-conn { width: 1px; height: 22px; background: linear-gradient(180deg, rgba(255, 107, 43, 0.7), transparent); margin: 0 auto; }
+    @media (min-width: 1024px) {
+      .fc-flow { flex-direction: row; align-items: stretch; gap: 14px; }
+      .fc-arr { transform: none; align-self: center; padding: 0 4px; }
+      .fc-stage { width: auto; flex: 1; }
+      .fc-conn { display: none; }
+    }
+    .fc-detail {
+      margin-top: 16px;
+      border: 1px solid rgba(255, 107, 43, 0.25);
+      background: linear-gradient(180deg, rgba(255, 91, 0, 0.05), rgba(255, 91, 0, 0.01));
+      border-radius: 14px;
+      padding: 18px 20px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .fc-stage, .tm-slide { transition: none; }
+      .animate-pulse { animation: none; }
+    }
+  </style>
+</head>
+<body class="bg-black text-neutral-200 antialiased selection:bg-[#FF5B00] selection:text-black min-h-screen">
+
+  <div id="cursor-glow" class="pointer-events-none fixed top-0 left-0 w-[550px] h-[550px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0 transition-opacity duration-300 z-30"
+       style="background: radial-gradient(circle, rgba(255,91,0,0.14) 0%, rgba(255,91,0,0.04) 45%, transparent 70%); will-change: transform;"></div>
+
+  <!-- TOP NAVIGATION -->
+  <header class="sticky top-0 z-50 border-b border-white/[0.06] bg-black/80 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3 sm:gap-4">
+      <a href="/" class="flex items-center gap-2.5 font-extrabold tracking-tight text-white text-lg whitespace-nowrap" aria-label="YUKTI home">
+        <svg class="h-7 w-7 shrink-0" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+          <path d="M54 41L84 16L72 31L54 41Z" fill="url(#yukti-orange)" />
+          <path d="M20 29L36 29L51 46L42 76L42 46L20 29Z" fill="#FFFFFF" />
+          <path d="M51 46L75 34L42 76L51 46Z" fill="url(#yukti-orange)" />
+          <defs>
+            <linearGradient id="yukti-orange" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FF8A4D" />
+              <stop offset="100%" stop-color="#FF5B00" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <span>YUKTI</span>
+      </a>
+
+      <nav class="hidden md:flex items-center gap-7 text-sm font-medium" aria-label="Primary">
+        <a href="/platform.html" class="text-[#FF8A4D]" aria-current="page">Platform</a>
+        <a href="/modes.html" class="text-neutral-400 hover:text-white transition">Mentor Modes</a>
+        <a href="/telemetry.html" class="text-neutral-400 hover:text-white transition">Analytics</a>
+        <a href="/docs.html" class="text-neutral-400 hover:text-white transition">Docs</a>
+      </nav>
+
+      <div class="flex items-center gap-4 shrink-0">
+        <a href="/app" class="inline-flex items-center gap-1.5 bg-[#FF5B00] hover:bg-[#FF6B2B] text-black text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-md shadow-sm transition whitespace-nowrap">
+          Open Playground <span aria-hidden="true">→</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 1. HERO -->
+  <section class="relative overflow-hidden border-b border-white/[0.06]">
+    <div class="pointer-events-none absolute inset-0 -z-10 bg-dots" aria-hidden="true"></div>
+    <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true"
+         style="background: radial-gradient(820px 520px at 82% -10%, rgba(255,91,0,0.05), transparent 62%), radial-gradient(600px 420px at -8% 108%, rgba(16,185,129,0.05), transparent 55%);"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-16 lg:py-24 min-w-0">
+      <div class="inline-flex items-center gap-2 rounded-md border border-[#FF6B2B]/40 bg-[#FF6B2B]/10 px-3.5 py-1.5 font-mono text-[11px] font-medium tracking-[0.12em]">
+        <span class="text-[#FF5B00]" aria-hidden="true">▓</span>
+        <span class="text-[#FF8A4D]">[YUKTI_ENGINE :: OBSERVABILITY PIPELINE]</span>
+      </div>
+
+      <h1 class="mt-7 max-w-4xl text-[40px] leading-[1.04] font-extrabold tracking-tight text-white sm:text-5xl xl:text-6xl">
+        Engineered for Verification,
+        <br />
+        <span class="bg-gradient-to-r from-[#FF8A4D] to-[#FF5B00] bg-clip-text text-transparent">Not Hallucinations.</span>
+      </h1>
+
+      <p class="mt-6 max-w-2xl text-base sm:text-lg leading-relaxed text-neutral-400">
+        Explore the internal architecture of YUKTI: local token management, AST verification gates, zero-execution security boundaries, and telemetry dispatch.
+      </p>
+
+      <div class="mt-8 flex flex-wrap items-center gap-4">
+        <a href="#architecture" class="inline-flex items-center gap-2 rounded-lg bg-[#FF5B00] hover:bg-[#FF6B2B] px-6 py-3 text-sm font-bold text-black shadow-sm hover:shadow-[0_0_15px_rgba(255,91,0,0.25)] transition duration-150">
+          Explore the architecture
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M12 5v14m-6-6 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="/app" class="inline-flex items-center gap-2 rounded-full border border-[#26282E] bg-transparent px-6 py-3.5 text-sm font-medium text-neutral-200 transition-colors hover:bg-white/5 hover:text-white">
+          Open the Playground
+        </a>
+      </div>
+
+      <div class="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 font-mono text-[11px] text-neutral-500">
+        <span class="inline-flex items-center gap-2">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#00E599]" aria-hidden="true"></span>
+          GATE: <span class="text-[#00E599]">ACTIVE</span>
+        </span>
+        <span class="inline-flex items-center gap-2">
+          EXECUTION: <span class="text-[#00E599]">ZERO</span>
+        </span>
+        <span class="inline-flex items-center gap-2">
+          LATENCY BUDGET: <span class="text-[#FF8A4D]">&lt;900MS</span>
+        </span>
+        <span class="inline-flex items-center gap-2">
+          VERIFY: <span class="text-[#00E599]">AST · LOCAL</span>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. INTERACTIVE ARCHITECTURE FLOWCHART -->
+  <section id="architecture" class="py-20 lg:py-28 border-b border-white/[0.06]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="font-mono text-xs font-semibold text-[#FF5B00] uppercase tracking-widest mb-2">STAGE / ORDER</div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Interactive architecture flow</h2>
+      <p class="mt-2 text-neutral-400 text-sm sm:text-base">Four stages, clickable. Select a stage to inspect its contract — the pipeline never reorders them.</p>
+
+      <div id="fcFlow" class="fc-flow mt-10 min-w-0">
+        <button type="button" class="fc-stage" data-fc="0" aria-pressed="true">
+          <span class="fc-num">01</span>
+          <span class="min-w-0">
+            <span class="fc-title block">Input Parsing &amp; Context Ingestion</span>
+            <span class="fc-tag">tokenize · repo summary · fold memory</span>
+          </span>
+        </button>
+        <span class="fc-arr" aria-hidden="true">→</span>
+        <button type="button" class="fc-stage" data-fc="1" aria-pressed="false">
+          <span class="fc-num">02</span>
+          <span class="min-w-0">
+            <span class="fc-title block">Specialized Routing Planner</span>
+            <span class="fc-tag">mode → model · provider · prompt</span>
+          </span>
+        </button>
+        <span class="fc-arr" aria-hidden="true">→</span>
+        <button type="button" class="fc-stage" data-fc="2" aria-pressed="false">
+          <span class="fc-num">03</span>
+          <span class="min-w-0">
+            <span class="fc-title block">AST Local Verification Gate</span>
+            <span class="fc-tag">ast.parse · never exec()</span>
+          </span>
+        </button>
+        <span class="fc-arr" aria-hidden="true">→</span>
+        <button type="button" class="fc-stage" data-fc="3" aria-pressed="false">
+          <span class="fc-num">04</span>
+          <span class="min-w-0">
+            <span class="fc-title block">Telemetry &amp; Token Budget Ledger</span>
+            <span class="fc-tag">turns · tokens · cost · $0.0001</span>
+          </span>
+        </button>
+      </div>
+
+      <div class="fc-detail font-mono text-[12.5px] leading-[1.8]" id="fcDetail">
+        <div class="text-[#FF8A4D]">STAGE 01 :: INPUT PARSING &amp; CONTEXT INGESTION</div>
+        <div class="mt-1 text-neutral-300" id="fcBody">Prompt text is normalized, trimmed, and rejected if empty. A repo summary (when available) and the folded session memory attach to the request, then the payload is tokenized against the target model's budget before routing.</div>
+        <div class="mt-2 text-[#00E599]" id="fcEcho">$ ingest --mode explain · context_ok · budget 12,480/128,000</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. SECURITY & ZERO-EXECUTION ISOLATION -->
+  <section id="sandbox" class="py-20 lg:py-28 border-b border-white/[0.06] bg-[#020202]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="font-mono text-xs font-semibold text-[#FF5B00] uppercase tracking-widest mb-2">SECURITY / SANDBOX</div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Zero-execution isolation, by construction</h2>
+      <p class="mt-2 text-neutral-400 text-sm sm:text-base max-w-2xl">
+        No interpreter, no sandboxed shell, no eval anywhere in the pipeline. Code delivery ends at a parse — the only "run" that happens is your own.
+      </p>
+
+      <div class="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start min-w-0">
+        <div class="rounded-2xl border border-white/[0.1] bg-[#06060A] p-6 min-w-0">
+          <div class="flex items-center justify-between gap-3 font-mono text-xs text-neutral-400 mb-4">
+            <span>local_verify.py</span>
+            <span class="text-[#00E599] border border-[#10B981]/40 bg-[#10B981]/10 px-2 py-0.5 rounded text-[10px] shrink-0">PARSE-ONLY</span>
+          </div>
+          <pre class="overflow-x-auto font-mono text-[12px] leading-[1.85] text-neutral-300"><code><span class="text-[#FF8A4D]">def</span> <span class="text-white">verify_block</span>(block):        <span class="text-neutral-600"># local only</span>
+    fp       = sha256(block)      <span class="text-neutral-600"># immutable reference</span>
+    tree     = ast.parse(block)   <span class="text-neutral-600"># never exec()</span>
+    issues   = scan(tree)         <span class="text-neutral-600"># syntax + scope</span>
+    fp2      = sha256(dump(tree)) <span class="text-neutral-600"># re-derive fingerprint</span>
+    <span class="text-[#FF6B2B]">assert</span> fp == fp2            <span class="text-neutral-600"># bytes → verdict</span>
+    <span class="text-[#FF6B2B]">return</span> verdict(fp, issues)   <span class="text-neutral-600"># ok | issues</span></code></pre>
+        </div>
+
+        <div class="min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="rounded-xl border border-white/[0.08] bg-[#0A0A0C] p-5 min-w-0">
+            <h3 class="text-white font-bold text-base">No execution engine</h3>
+            <p class="mt-2 text-xs text-neutral-400 leading-relaxed">Verifiers import a parser AST only. There is no compiled, interpreted, or evaluated pathway for delivered code.</p>
+          </div>
+          <div class="rounded-xl border border-white/[0.08] bg-[#0A0A0C] p-5 min-w-0">
+            <h3 class="text-white font-bold text-base">Local hash-verification</h3>
+            <p class="mt-2 text-xs text-neutral-400 leading-relaxed">Each delivered block gets a sha-256 fingerprint; the re-parsed tree must reproduce it byte-for-byte before the verdict is sealed.</p>
+          </div>
+          <div class="rounded-xl border border-white/[0.08] bg-[#0A0A0C] p-5 min-w-0">
+            <h3 class="text-white font-bold text-base">Repo never ships out</h3>
+            <p class="mt-2 text-xs text-neutral-400 leading-relaxed">Scanning touches only the working directory and writes a local summary. Sessions persist in local SQLite — the model travels, your source doesn't.</p>
+          </div>
+          <div class="rounded-xl border border-white/[0.08] bg-[#0A0A0C] p-5 min-w-0">
+            <h3 class="text-white font-bold text-base">Boundaries enforced</h3>
+            <p class="mt-2 text-xs text-neutral-400 leading-relaxed">Hash SALTED_RING + AST parse + verdict append happens inside the same process, with no subprocess spawn on the code path.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. MODEL DISPATCH MATRIX -->
+  <section id="matrix" class="py-20 lg:py-28 border-b border-white/[0.06]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="font-mono text-xs font-semibold text-[#FF5B00] uppercase tracking-widest mb-2">DISPATCH / MATRIX</div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Model dispatch matrix</h2>
+      <p class="mt-2 text-neutral-400 text-sm sm:text-base max-w-2xl">Provider-agnostic tiers, resolved from environment variables at boot. No tier may deliver code past the AST gate unverified.</p>
+
+      <div class="mt-10 overflow-x-auto rounded-2xl border border-white/[0.12] bg-[#0A0A0C]/80 backdrop-blur-xl shadow-[0_0_50px_rgba(255,91,0,0.08)] min-w-0">
+        <table class="w-full min-w-[640px] border-collapse text-[13px]">
+          <thead>
+            <tr class="font-mono text-[10px] tracking-[0.14em] uppercase text-neutral-500">
+              <th class="text-left px-5 py-3.5 border-b border-white/[0.06] bg-white/[0.02]">Tier</th>
+              <th class="text-left px-5 py-3.5 border-b border-white/[0.06] bg-white/[0.02]">Resolution</th>
+              <th class="text-left px-5 py-3.5 border-b border-white/[0.06] bg-white/[0.02]">Context</th>
+              <th class="text-left px-5 py-3.5 border-b border-white/[0.06] bg-white/[0.02]">Latency budget</th>
+              <th class="text-left px-5 py-3.5 border-b border-white/[0.06] bg-white/[0.02]">AST gate</th>
+            </tr>
+          </thead>
+          <tbody class="font-mono text-[12px]">
+            <tr class="border-b border-white/[0.04] text-neutral-300">
+              <td class="px-5 py-3.5 text-white font-semibold">DEFAULT</td>
+              <td class="px-5 py-3.5"><span class="text-[#FF8A4D]">LLM_MODEL</span> · text modes</td>
+              <td class="px-5 py-3.5">128k</td>
+              <td class="px-5 py-3.5"><span class="text-[#00E599]">&lt;900ms</span></td>
+              <td class="px-5 py-3.5 text-neutral-600">—</td>
+            </tr>
+            <tr class="border-b border-white/[0.04] text-neutral-300">
+              <td class="px-5 py-3.5 text-white font-semibold">CODE</td>
+              <td class="px-5 py-3.5"><span class="text-[#FF8A4D]">LLM_CODE_MODEL</span> · generate/errors/optimize</td>
+              <td class="px-5 py-3.5">128k</td>
+              <td class="px-5 py-3.5"><span class="text-[#00E599]">&lt;900ms</span></td>
+              <td class="px-5 py-3.5"><span class="text-[#00E599]">✓ parse gate</span></td>
+            </tr>
+            <tr class="text-neutral-300">
+              <td class="px-5 py-3.5 text-white font-semibold">COST SENSITIVE</td>
+              <td class="px-5 py-3.5"><span class="text-[#FF8A4D]">HIGH_COST_SENSITIVE</span> · high volume</td>
+              <td class="px-5 py-3.5">64k</td>
+              <td class="px-5 py-3.5"><span class="text-[#FF8A4D]">&lt;1200ms</span></td>
+              <td class="px-5 py-3.5"><span class="text-[#00E599]">✓ parse gate</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-5 flex flex-wrap items-center gap-2 font-mono text-[11px] text-neutral-400">
+        <span class="text-neutral-600">LANGUAGES VERIFIED:</span>
+        <span class="rounded border border-[#10B981]/30 bg-[#10B981]/10 px-2.5 py-1 text-[#00E599]">Python</span>
+        <span class="rounded border border-[#10B981]/30 bg-[#10B981]/10 px-2.5 py-1 text-[#00E599]">TypeScript</span>
+        <span class="rounded border border-[#10B981]/30 bg-[#10B981]/10 px-2.5 py-1 text-[#00E599]">Rust</span>
+        <span class="rounded border border-[#10B981]/30 bg-[#10B981]/10 px-2.5 py-1 text-[#00E599]">Go</span>
+        <span class="rounded border border-[#10B981]/30 bg-[#10B981]/10 px-2.5 py-1 text-[#00E599]">C++</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. REAL-TIME TELEMETRY & COST ENGINE -->
+  <section id="telemetry" class="py-20 lg:py-28 bg-[#020202]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="font-mono text-xs font-semibold text-[#FF5B00] uppercase tracking-widest mb-2">TELEMETRY / COST ENGINE</div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Every turn, measured to the fraction of a cent</h2>
+      <p class="mt-2 text-neutral-400 text-sm sm:text-base max-w-2xl">Per-turn token accounting, cost precision down to $0.0001, and a folding memory that keeps long sessions coherent without unbounded context.</p>
+
+      <div class="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start min-w-0">
+        <div class="rounded-2xl border border-white/[0.1] bg-[#06060A] p-6 min-w-0">
+          <div class="flex items-center justify-between gap-3 font-mono text-xs text-neutral-400 mb-4">
+            <span>ledger.py</span>
+            <span class="text-[#FF8A4D] border border-[#FF5B00]/40 bg-[#FF5B00]/10 px-2 py-0.5 rounded text-[10px] shrink-0">REAL DATA</span>
+          </div>
+          <pre class="overflow-x-auto font-mono text-[12px] leading-[1.85] text-neutral-300"><code>turn += <span class="text-[#FF8A4D]">1</span>
+usage.prompt      += u.prompt_tokens            <span class="text-neutral-600"># per-turn in</span>
+usage.completion  += u.completion_tokens        <span class="text-neutral-600"># per-turn out</span>
+cost  = round(tokens * price, <span class="text-[#FF8A4D]">4</span>)           <span class="text-neutral-600"># $0.0001 precision</span>
+ledger.append(latency_ms)                        <span class="text-neutral-600"># budget &lt; 900ms</span>
+<span class="text-[#FF6B2B]">if</span> len(history) &gt; <span class="text-[#FF8A4D]">12</span>:
+    memo = fold_summary(history)                 <span class="text-neutral-600"># recall, then fold</span>
+    history = [memo] + history[-<span class="text-[#FF8A4D]">4</span>:]</code></pre>
+        </div>
+
+        <div class="min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="rounded-xl border border-white/[0.08] bg-[#0A0A0C] p-5 min-w-0">
+            <div class="font-mono text-[10px] tracking-[0.14em] text-neutral-500 uppercase">Per-turn measure</div>
+            <div class="mt-2 font-mono text-lg font-bold text-white">in · out · total</div>
+            <p class="mt-2 text-xs text-neutral-400 leading-relaxed">Prompt and completion tokens are recorded separately every turn and rolled into the /stats ledger.</p>
+          </div>
+          <div class="rounded-xl border border-white/[0.08] bg-[#0A0A0C] p-5 min-w-0">
+            <div class="font-mono text-[10px] tracking-[0.14em] text-neutral-500 uppercase">Cost precision</div>
+            <div class="mt-2 font-mono text-lg font-bold text-[#00E599]">$0.0001</div>
+            <p class="mt-2 text-xs text-neutral-400 leading-relaxed">Totals stay accurate at the fourth decimal — no rounding up to eye-pleasing numbers.</p>
+          </div>
+          <div class="rounded-xl border border-white/[0.08] bg-[#0A0A0C] p-5 min-w-0">
+            <div class="font-mono text-[10px] tracking-[0.14em] text-neutral-500 uppercase">Folding memory</div>
+            <div class="mt-2 font-mono text-lg font-bold text-white">fold ≥ 12</div>
+            <p class="mt-2 text-xs text-neutral-400 leading-relaxed">Long threads distill into a running summary; caught-up turns are kept verbatim.</p>
+          </div>
+          <div class="rounded-xl border border-white/[0.08] bg-[#0A0A0C] p-5 min-w-0">
+            <div class="font-mono text-[10px] tracking-[0.14em] text-neutral-500 uppercase">Live readout</div>
+            <div class="mt-2 font-mono text-[15px] text-[#FF8A4D]">9,592 tokens · $0.010</div>
+            <p class="mt-2 text-xs text-neutral-400 leading-relaxed">Pull the same numbers live on the <a href="/telemetry.html" class="text-[#FF8A4D] underline-offset-2 hover:underline">Analytics</a> page.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. CTA -->
+  <section class="py-24 text-center border-t border-white/[0.06] bg-black">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6">
+      <div class="font-mono text-[11px] font-semibold text-[#FF5B00] uppercase tracking-widest mb-3">[ENGINE_SPEC :: END]</div>
+      <h2 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">Read the architecture in action.</h2>
+      <p class="mt-4 text-neutral-400 text-base">Every mode you run is this pipeline, end to end.</p>
+      <div class="mt-8">
+        <a href="/app" class="inline-block bg-[#FF5B00] hover:bg-[#FF6B2B] text-black font-bold text-sm px-6 py-3.5 rounded-md shadow-sm hover:shadow-[0_0_15px_rgba(255,91,0,0.25)] transition">
+          Launch the Playground
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. FOOTER -->
+  <footer class="border-t border-white/[0.06] bg-black text-neutral-400 text-xs py-14">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
+      <div class="lg:col-span-2">
+        <div class="flex items-center gap-2.5 font-extrabold tracking-tight text-white text-sm">
+          <svg class="h-6 w-6 shrink-0" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+            <path d="M54 41L84 16L72 31L54 41Z" fill="url(#yukti-orange)" />
+            <path d="M20 29L36 29L51 46L42 76L42 46L20 29Z" fill="#FFFFFF" />
+            <path d="M51 46L75 34L42 76L51 46Z" fill="url(#yukti-orange)" />
+            <defs>
+              <linearGradient id="yukti-orange" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FF8A4D" />
+                <stop offset="100%" stop-color="#FF5B00" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <span>YUKTI</span>
+        </div>
+        <p class="mt-3 text-neutral-500 text-xs leading-relaxed max-w-sm">
+          Your AI programming mentor — explaining, debugging, generating, and optimizing against your own code, locally.
+        </p>
+      </div>
+
+      <div>
+        <div class="font-mono text-[11px] text-white font-semibold uppercase tracking-wider mb-3">Product</div>
+        <ul class="space-y-2">
+          <li><a href="/platform.html" class="hover:text-white transition">Platform</a></li>
+          <li><a href="/modes.html" class="hover:text-white transition">Mentor Modes</a></li>
+          <li><a href="/app" class="hover:text-white transition">Playground</a></li>
+          <li><a href="/telemetry.html" class="hover:text-white transition">Analytics</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <div class="font-mono text-[11px] text-white font-semibold uppercase tracking-wider mb-3">Resources</div>
+        <ul class="space-y-2">
+          <li><a href="/docs.html" class="hover:text-white transition">Documentation</a></li>
+          <li><a href="/docs.html#api" class="hover:text-white transition">API reference</a></li>
+          <li><a href="/docs.html#settings" class="hover:text-white transition">Configuration</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <div class="font-mono text-[11px] text-white font-semibold uppercase tracking-wider mb-3">Company</div>
+        <ul class="space-y-2">
+          <li><a href="/about.html" class="hover:text-white transition">About</a></li>
+          <li><a href="/docs.html#verification" class="hover:text-white transition">Verification spec</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 mt-12 pt-6 border-t border-white/[0.04] flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px] text-neutral-600">
+      <div>© 2026 YUKTI. All rights reserved.</div>
+      <div>LOCAL-FIRST · NO CODE EXECUTION</div>
+    </div>
+  </footer>
+
+  <!-- Flowchart controller -->
+  <script>
+    (function () {
+      var stages = Array.prototype.slice.call(document.querySelectorAll('.fc-stage'));
+      var code = document.getElementById('fcDetail');
+      if (!stages.length || !code) return;
+      var BODIES = [
+        { t: 'STAGE 01 :: INPUT PARSING &amp; CONTEXT INGESTION', b: 'Prompt text is normalized, trimmed, and rejected if empty. A repo summary (when available) and the folded session memory attach to the request, then the payload is tokenized against the target model\'s budget before routing.', e: '$ ingest --mode explain · context_ok · budget 12,480/128,000' },
+        { t: 'STAGE 02 :: SPECIALIZED ROUTING PLANNER', b: 'The active mode maps to its dedicated instruction sheet, model tier, and prompt. Generate and error modes route to the code tier; text modes to the default tier. Routing is provider-agnostic via environment variables.', e: '$ route --mode generate → LLM_CODE_MODEL · openrouter' },
+        { t: 'STAGE 03 :: AST LOCAL VERIFICATION GATE', b: 'Every produced block is parsed locally — never executed. A sha-256 fingerprint of the raw block must match the fingerprint of the re-parsed tree before the verdict is sealed as ok.', e: '$ verify · ast.parse ok · sha256 match · verdict=ok' },
+        { t: 'STAGE 04 :: TELEMETRY &amp; TOKEN BUDGET LEDGER', b: 'Tokens in/out, latency, model, provider, and cost (four decimals) append to the ledger. Long threads fold into a summary memory. /stats surfaces the same numbers live.', e: '$ ledger.append · 9,592 tokens · $0.0100 · δ812ms' }
+      ];
+      function set(idx) {
+        stages.forEach(function (s) { s.classList.remove('on'); s.setAttribute('aria-pressed', 'false'); });
+        stages[idx].classList.add('on');
+        stages[idx].setAttribute('aria-pressed', 'true');
+        var d = BODIES[idx];
+        code.innerHTML = '<div class="text-[#FF8A4D]">' + d.t + '</div>' +
+          '<div class="mt-1 text-neutral-300" id="fcBody">' + d.b + '</div>' +
+          '<div class="mt-2 text-[#00E599]">' + d.e + '</div>';
+      }
+      stages.forEach(function (s, i) { s.addEventListener('click', function () { set(i); }); });
+      set(0);
+    })();
+  </script>
+
+  <!-- Cursor-follower spotlight -->
+  <script>
+    (function () {
+      var glow = document.getElementById('cursor-glow');
+      if (!glow) return;
+      window.addEventListener('mousemove', function (e) {
+        glow.style.opacity = '1';
+        glow.style.transform = 'translate3d(' + e.clientX + 'px, ' + e.clientY + 'px, 0) translate(-50%, -50%)';
+      });
+      document.addEventListener('mouseleave', function () {
+        glow.style.opacity = '0';
+      });
+    })();
+  </script>
+
+</body>
+</html>

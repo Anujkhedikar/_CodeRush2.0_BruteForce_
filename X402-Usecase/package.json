@@ -1,6 +1,6 @@
 {
-  "name": "X402-Usecase",
-  "version": "0.1.0",
+  "name": "yukti",
+  "version": "1.0.0",
   "author": {
     "name": "marotipatre",
     "email": "vaibhavspatre@gmail.com"
@@ -45,6 +45,7 @@
     "@x402-avm/fetch": "^2.6.1",
     "algosdk": "^3.0.0",
     "daisyui": "^4.0.0",
+    "lucide-react": "^0.460.0",
     "lute-connect": "^1.7.0",
     "notistack": "^3.0.1",
     "react": "^18.2.0",

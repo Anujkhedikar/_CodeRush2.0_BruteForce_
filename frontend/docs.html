@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="YUKTI documentation — API gateway, request/response schemas, CLI reference, configuration, and the full verification spec." />
+  <meta name="theme-color" content="#000000" />
+  <title>Documentation — YUKTI</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            canvas: "#000000", surface: "#0A0A0C", elevated: "#101012", deep: "#06060A",
+            orange: { DEFAULT: "#FF5B00", b: "#FF6B2B", a: "#FF8A4D" },
+            green: { DEFAULT: "#10B981", t: "#00E599" },
+            ink: { DEFAULT: "#FCFDFF", body: "rgba(252,253,255,0.86)", muted: "#A1A4A5" }
+          },
+          fontFamily: {
+            display: ['"Plus Jakarta Sans"', '"Inter"', 'sans-serif'],
+            body: ['"Inter"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+
+  <div id="cursor-glow" class="pointer-events-none fixed top-0 left-0 w-[550px] h-[550px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0 transition-opacity duration-300 z-30"
+       style="background: radial-gradient(circle, rgba(255,91,0,0.14) 0%, rgba(255,91,0,0.04) 45%, transparent 70%); will-change: transform;"></div>
+
+  <header class="nav-bar" id="navBar">
+    <div class="container-x nav-inner">
+      <a class="logo" href="/" aria-label="YUKTI home">
+        <svg class="logo-mark" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+          <path d="M54 41L84 16L72 31L54 41Z" fill="url(#yukti-o)" />
+          <path d="M20 29L36 29L51 46L42 76L42 46L20 29Z" fill="#FFFFFF" />
+          <path d="M51 46L75 34L42 76L51 46Z" fill="url(#yukti-o)" />
+          <defs>
+            <linearGradient id="yukti-o" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FF8A4D" />
+              <stop offset="100%" stop-color="#FF5B00" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="logo-name">YUKTI</span>
+      </a>
+      <nav class="nav-links" id="navLinks">
+        <a class="nav-link" href="/platform.html">Platform</a>
+        <a class="nav-link" href="/modes.html">Mentor Modes</a>
+        <a class="nav-link" href="/telemetry.html">Analytics</a>
+        <a class="nav-link is-active" href="/docs.html">Docs</a>
+      </nav>
+      <div class="nav-end">
+        <a class="btn btn-primary btn-mono" href="/app">Open Playground →</a>
+        <button class="icon-btn nav-burger" id="navBurger" type="button" aria-label="Menu" aria-expanded="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="mobile-panel" id="mobilePanel">
+      <a class="nav-link" href="/platform.html">Platform</a>
+      <a class="nav-link" href="/modes.html">Mentor Modes</a>
+      <a class="nav-link" href="/telemetry.html">Analytics</a>
+      <a class="nav-link" href="/docs.html">Docs</a>
+      <a class="btn btn-primary btn-mono mt-3" href="/app">Open Playground →</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container-x" style="max-width:1000px">
+        <span class="micro-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg><span>[REFERENCE :: <span class="brk">API / CLI / SCHEMA</span>]</span></span>
+        <h1 style="font-size:clamp(34px,5vw,54px)">The gateway <span class="grad-orange">documentation</span></h1>
+        <p class="hero-sub">Everything you need to drive YUKTI — server, CLI, environment configuration, request/response schemas, and the full verification spec.</p>
+        <div class="hero-ctas">
+          <a class="btn btn-primary btn-lg" href="#api">API Reference</a>
+          <a class="btn btn-ghost btn-lg" href="#quickstart">Quick Start</a>
+        </div>
+      </div>
+      <span class="grid-dots" aria-hidden="true"></span>
+    </section>
+
+    <section class="section">
+      <div class="container-x" style="display:grid;grid-template-columns:250px 1fr;gap:56px" class="docs-layout">
+        <aside class="docs-side">
+          <nav class="docs-nav">
+            <span class="docs-nav-label">Start</span>
+            <a class="docs-link" href="#quickstart">Quick start</a>
+            <a class="docs-link" href="#requirements">Requirements</a>
+            <span class="docs-nav-label">Run</span>
+            <a class="docs-link" href="#server">Server &amp; routes</a>
+            <a class="docs-link" href="#cli">CLI reference</a>
+            <a class="docs-link" href="#settings">Configuration</a>
+            <span class="docs-nav-label">Integrate</span>
+            <a class="docs-link" href="#api">API reference</a>
+            <a class="docs-link" href="#schemas">Schemas</a>
+            <a class="docs-link" href="#verification">Verification spec</a>
+          </nav>
+        </aside>
+
+        <div class="docs-main">
+          <section id="quickstart" style="margin-bottom:56px">
+            <div class="section-tag">START</div>
+            <h2 class="section-title" style="font-size:clamp(24px,3vw,32px)">Quick start</h2>
+            <div class="divider-orange"></div>
+            <p class="muted" style="margin:22px 0 18px">Run the local backend in three commands.</p>
+            <div class="codeblock">
+              <div class="codeblock-head"><span>terminal — repo root</span><span class="chip">BASH</span></div>
+              <pre><code><span class="tok-c"># 1. install dependencies</span>
+pip install -r requirements.txt
+
+<span class="tok-c"># 2. set the model key (see Configuration)</span>
+
+<span class="tok-c"># 3. start the gateway (serves API + static site on :8000)</span>
+python backend/app.py</code></pre>
+            </div>
+          </section>
+
+          <section id="requirements" style="margin-bottom:56px">
+            <div class="section-tag">ENVIRONMENT</div>
+            <h2 class="section-title" style="font-size:clamp(24px,3vw,32px)">Requirements</h2>
+            <div class="divider-orange"></div>
+            <div class="table-wrap" style="margin-top:22px">
+              <table>
+                <thead><tr><th>Item</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">Python 3.11+</td><td>Runtime for the backend, CLI, and verification.</td></tr>
+                  <tr><td class="mono">Node 18+ <span class="muted">(optional)</span></td><td>Only to rebuild the React Playground (<code class="mono">/app</code>).</td></tr>
+                  <tr><td class="mono">Provider key</td><td>Set via environment variables — never in the repo.</td></tr>
+                  <tr><td class="mono">SQLite</td><td>Bundled with Python; sessions persist locally.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="server" style="margin-bottom:56px">
+            <div class="section-tag">SERVER</div>
+            <h2 class="section-title" style="font-size:clamp(24px,3vw,32px)">Server &amp; routes</h2>
+            <div class="divider-orange"></div>
+            <div class="codeblock" style="margin-top:22px">
+              <div class="codeblock-head"><span>terminal</span><span class="chip">RUN</span></div>
+              <pre><code>python backend/app.py</code></pre>
+            </div>
+            <div class="table-wrap" style="margin-top:18px">
+              <table>
+                <thead><tr><th>Route</th><th>Purpose</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">/</td><td>Static tactical site (this page set).</td></tr>
+                  <tr><td class="mono">/app</td><td>React Playground — chat UI + history + per-mode routing.</td></tr>
+                  <tr><td class="mono">/mentor</td><td>POST-only. The mentoring engine (see API).</td></tr>
+                  <tr><td class="mono">/sessions</td><td>Session listing, resume, and cleanup.</td></tr>
+                  <tr><td class="mono">/stats</td><td>Telemetry aggregates backing the Telemetry page.</td></tr>
+                  <tr><td class="mono">/health</td><td>Liveness probe used by the node lamps.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="cli" style="margin-bottom:56px">
+            <div class="section-tag">TOOLING</div>
+            <h2 class="section-title" style="font-size:clamp(24px,3vw,32px)">CLI reference</h2>
+            <div class="divider-orange"></div>
+            <div class="codeblock" style="margin-top:22px">
+              <div class="codeblock-head"><span>terminal — interactive REPL</span><span class="chip">CLI</span></div>
+              <pre><code>python backend/cli.py
+
+<span class="tok-k">/help</span>        list all commands
+<span class="tok-k">/stats</span>       usage analytics (tokens, cost, breakdowns)
+<span class="tok-k">/history</span>     show recent sessions
+<span class="tok-k">/resume N</span>    continue a session
+<span class="tok-k">/delete N</span>    remove a session
+<span class="tok-k">/mode explain</span> switch the active mentor mode</code></pre>
+            </div>
+            <div class="table-wrap" style="margin-top:18px">
+              <table>
+                <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">--mode</td><td>explain | error_finder | generate | optimizer | repo_report</td></tr>
+                  <tr><td class="mono">--session-id</td><td>Continue an existing session thread.</td></tr>
+                  <tr><td class="mono">--print-mode</td><td>text | markdown | json</td></tr>
+                  <tr><td class="mono">--verbose</td><td>Include latency, tokens, model, and cost.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="settings" style="margin-bottom:56px">
+            <div class="section-tag">CONFIG</div>
+            <h2 class="section-title" style="font-size:clamp(24px,3vw,32px)">Configuration</h2>
+            <div class="divider-orange"></div>
+            <p class="muted" style="margin:22px 0 18px">All configuration is environment-driven; no secrets in code.</p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Variable</th><th>Purpose</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">LLM_API_KEY</td><td>Primary provider key (OpenRouter default).</td></tr>
+                  <tr><td class="mono">LLM_MODEL</td><td>Default model for text modes.</td></tr>
+                  <tr><td class="mono">LLM_CODE_MODEL</td><td>Model used by code-generation modes.</td></tr>
+                  <tr><td class="mono">MODEL_PROVIDER</td><td>Routing provider for the primary key.</td></tr>
+                  <tr><td class="mono">HIGH_COST_SENSITIVE</td><td>Stricter cost cap for high-volume use.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="codeblock" style="margin-top:18px">
+              <div class="codeblock-head"><span>.env</span><span class="chip">EXAMPLE</span></div>
+              <pre><code>LLM_API_KEY=your_key_here
+LLM_MODEL=meta-llama/llama-3.3-70b-instruct
+LLM_CODE_MODEL=openai/gpt-oss-120b
+MODEL_PROVIDER=openrouter</code></pre>
+            </div>
+          </section>
+
+          <section id="api" style="margin-bottom:56px">
+            <div class="section-tag">API GATEWAY</div>
+            <h2 class="section-title" style="font-size:clamp(24px,3vw,32px)">API reference</h2>
+            <div class="divider-orange"></div>
+
+            <div style="margin-top:24px">
+              <div class="api-item">
+                <span class="api-method">POST</span><code>/mentor</code>
+                <span class="api-tag">chat + verify</span>
+              </div>
+              <p class="muted" style="margin:0 0 14px">Send a turn to the mentor. Empty input text is rejected with <code class="mono">400</code>.</p>
+              <div class="codeblock">
+                <div class="codeblock-head"><span>request — application/json</span><span class="chip">BODY</span></div>
+                <pre><code>{
+  <span class="tok-k">"session_id"</span>: <span class="tok-s">"optional"</span>,
+  <span class="tok-k">"mode"</span>: <span class="tok-s">"generate"</span>,
+  <span class="tok-k">"input_text"</span>: <span class="tok-s">"a fib function in python"</span>,
+  <span class="tok-k">"language"</span>: <span class="tok-s">"python"</span>
+}</code></pre>
+              </div>
+              <div class="codeblock" style="margin-top:12px">
+                <div class="codeblock-head"><span>response</span><span class="chip">200</span></div>
+                <pre><code>{
+  <span class="tok-k">"session_id"</span>: <span class="tok-s">"a1b2c3"</span>,
+  <span class="tok-k">"mode"</span>: <span class="tok-s">"generate"</span>,
+  <span class="tok-k">"language"</span>: <span class="tok-s">"python"</span>,
+  <span class="tok-k">"result"</span>: <span class="tok-s">"def fib(n): ..."</span>,
+  <span class="tok-k">"usage"</span>:   { <span class="tok-s">"prompt_tokens"</span>, <span class="tok-s">"completion_tokens"</span>, <span class="tok-s">"total_tokens"</span> },
+  <span class="tok-k">"model"</span>: <span class="tok-s">"openai/gpt-oss-120b"</span>,
+  <span class="tok-k">"provider"</span>: <span class="tok-s">"openrouter"</span>,
+  <span class="tok-k">"duration_ms"</span>: <span class="tok-s">812</span>,
+  <span class="tok-k">"context"</span>:    { <span class="tok-k">"note"</span>, <span class="tok-k">"trimmed_turns"</span> },
+  <span class="tok-k">"verification"</span>: { <span class="tok-k">"status"</span>: <span class="tok-s">"ok"</span>, <span class="tok-k">"blocks"</span>: [ ... ] }
+}</code></pre>
+              </div>
+            </div>
+
+            <div style="margin-top:20px">
+              <div class="api-item"><span class="api-method api-method-get">GET</span><code>/sessions</code><span class="api-tag">history</span></div>
+              <div class="api-item"><span class="api-method api-method-get">GET</span><code>/sessions/{session_id}</code><span class="api-tag">turn detail</span></div>
+              <div class="api-item"><span class="api-method">DELETE</span><code>/sessions/{session_id}</code><span class="api-tag">cleanup</span></div>
+              <div class="api-item"><span class="api-method api-method-get">GET</span><code>/stats</code><span class="api-tag">totals + breakdowns</span></div>
+              <div class="api-item"><span class="api-method api-method-get">GET</span><code>/health</code><span class="api-tag">liveness</span></div>
+            </div>
+          </section>
+
+          <section id="schemas" style="margin-bottom:56px">
+            <div class="section-tag">SCHEMATA</div>
+            <h2 class="section-title" style="font-size:clamp(24px,3vw,32px)">Data shapes</h2>
+            <div class="divider-orange"></div>
+            <div class="table-wrap" style="margin-top:22px">
+              <table>
+                <thead><tr><th>Collection</th><th>Fields</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">Session summary</td><td class="mono">id · preview · updated_at · turn_count · total_tokens</td></tr>
+                  <tr><td class="mono">Turn</td><td class="mono">role · content · mode · language · usage · model · provider · duration_ms · verification · context</td></tr>
+                  <tr><td class="mono">Stats totals</td><td class="mono">sessions · turns · prompt_tokens · completion_tokens · total_tokens · cost</td></tr>
+                  <tr><td class="mono">Breakdowns</td><td class="mono">by_mode · by_provider · by_model (name, turns, tokens, cost)</td></tr>
+                  <tr><td class="mono">Daily series</td><td class="mono">by_day — 14-day padded window of turns/tokens/cost</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="verification">
+            <div class="section-tag">OUTPUT CONTRACT</div>
+            <h2 class="section-title" style="font-size:clamp(24px,3vw,32px)">Verification spec</h2>
+            <div class="divider-orange"></div>
+            <p class="muted" style="margin:22px 0 18px">Code-producing modes never execute. Output passes through a local parser before it leaves the backend, and the verdict rides along on the response.</p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">verification.status</td><td><code class="mono">ok</code> when every block parsed cleanly.</td></tr>
+                  <tr><td class="mono">verification.blocks</td><td>Array of parsed code blocks, each with its own <code class="mono">issues</code> list.</td></tr>
+                  <tr><td class="mono">verification.blocks[].issues</td><td>Syntax problems found by the parser — returned verbatim to you.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="quote card" style="margin-top:30px;text-align:center;padding:40px 24px">
+              <blockquote style="font-family:var(--font-display);font-size:24px;font-weight:700;letter-spacing:-0.02em;color:var(--ink)">“Verified before shown — every time.”</blockquote>
+              <span class="mono muted" style="font-size:11px;letter-spacing:0.14em">— YUKTI OUTPUT CONTRACT</span>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container-x footer-grid">
+      <div>
+        <a class="logo" href="/">
+          <svg class="logo-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <g transform="translate(16,16)"><polygon points="0,-13 11.26,-6.5 11.26,6.5 0,13 -11.26,6.5 -11.26,-6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="0" cy="0" r="3.6" fill="currentColor"/></g>
+          </svg>
+          <span class="logo-name">YUKTI</span>
+        </a>
+        <p class="footer-desc">Verified, measured, locally-dispatched programming mentors. Your code stays on your machine — forever.</p>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <a class="footer-link" href="/platform.html">Platform</a>
+        <a class="footer-link" href="/modes.html">Mentor Modes</a>
+        <a class="footer-link" href="/telemetry.html">Analytics</a>
+        <a class="footer-link" href="/app">Playground</a>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <a class="footer-link" href="/about.html">About</a>
+        <a class="footer-link" href="/docs.html">Docs</a>
+        <a class="footer-link" href="/faq.html">FAQ</a>
+      </div>
+      <div>
+        <h4>Support</h4>
+        <a class="footer-link" href="/faq.html">Trust &amp; Security FAQ</a>
+        <a class="footer-link" href="/docs.html#api">API Reference</a>
+        <a class="footer-link" href="/docs.html#cli">CLI Reference</a>
+      </div>
+    </div>
+    <div class="footer-bottom container-x">
+      <span>© <span data-year>2026</span> YUKTI. All rights reserved.</span>
+      <span style="display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="select-pill lock-tag"><span class="status-dot"></span>&nbsp; LOCAL-FIRST · NO CODE EXECUTION</span>
+      </span>
+    </div>
+  </footer>
+
+  <a class="back-top" id="backTop" href="#top" aria-label="Back to top">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  </a>
+
+  <script src="js/app.js" defer></script>
+</body>
+</html>
