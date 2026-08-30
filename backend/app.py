@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -68,6 +69,7 @@ if not logger.handlers:
         pass  # logging stays console-only if the file cannot be created
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+REACT_DIR = Path(__file__).resolve().parent.parent / "X402-Usecase" / "dist"
 
 REPO_MODE = "repo_report"
 REPO_MAX_TOKENS = 4096
@@ -83,6 +85,11 @@ app = FastAPI(
     title="CodeMentor AI",
     description="Single-agent AI mentor for code explanation, error review, "
                 "generation, optimization, and repository analysis.",
+    # The product "Documentation" page lives at /docs, so the framework's
+    # auto-generated Swagger/OpenAPI endpoints are disabled on this path.
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
 
 app.add_middleware(
@@ -323,4 +330,47 @@ async def session_delete(session_id: str) -> Dict[str, Any]:
     return {"deleted": session_id}
 
 
+# Multi-page site routes. Each page is served at a clean path (no .html suffix)
+# from the frontend directory. Kept explicit and minimal; the StaticFiles mount
+# below continues to serve assets and any other files.
+_SITE_PAGES = {
+    "": "index.html",
+    "index": "index.html",
+    "platform": "platform.html",
+    "modes": "modes.html",
+    "analytics": "analytics.html",
+    "docs": "docs.html",
+    "security": "security.html",
+    "about": "about.html",
+}
+
+
+@app.get("/{page}")
+async def site_page(page: str = ""):
+    # The Playground is now the React application (the built X402-Usecase bundle).
+    # Both "/app" and the legacy "/app.html" resolve here, so every existing
+    # static "Open the Playground" link still lands on the React Playground.
+    if page in {"app", "app.html"}:
+        react_index = REACT_DIR / "index.html"
+        if react_index.is_file():
+            return FileResponse(react_index)
+        raise HTTPException(status_code=404, detail="React build not found. Run npx vite build in X402-Usecase.")
+    key = page[:-5] if page.endswith(".html") else page
+    name = _SITE_PAGES.get(key)
+    path = (FRONTEND_DIR / name) if name else None
+    # Fall back to serving any existing single-segment file (e.g. favicon.svg)
+    # before returning a 404.
+    if path is None or not path.is_file():
+        candidate = FRONTEND_DIR / page
+        if candidate.is_file():
+            return FileResponse(candidate)
+        raise HTTPException(status_code=404, detail="Page not found.")
+    return FileResponse(path)
+
+
+# Serve the built React application and its bundled assets under /app. The root
+# frontend mount below continues to serve the static marketing site for every
+# other path, keeping the API and the frontend on a single origin (port 8000).
+if (REACT_DIR / "index.html").is_file():
+    app.mount("/app", StaticFiles(directory=REACT_DIR, html=True), name="react")
 app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
