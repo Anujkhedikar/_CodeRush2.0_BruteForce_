@@ -1,9 +1,6 @@
-# render.yaml — Render deployment blueprint for CodeRush 2.0
-# Docs: https://render.com/docs/blueprint-spec
-
 services:
 
-  # ── Backend: FastAPI (Python / Uvicorn) ──────────────────────────────────
+  # Backend
   - type: web
     name: coderush-backend
     runtime: python
@@ -37,13 +34,13 @@ services:
 
     healthCheckPath: /health
 
-  # ── Frontend: Static HTML/CSS/JS ─────────────────────────────────────────
+  # Frontend
   - type: web
     name: coderush-frontend
     runtime: static
-    plan: free
     rootDir: frontend
-    staticPublishPath: .
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
 
     headers:
       - path: /*
