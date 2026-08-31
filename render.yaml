@@ -2,7 +2,7 @@ services:
 
   # Backend
   - type: web
-    name: coderush-backend
+    name: Yukti-Cli
     runtime: python
     region: oregon
     plan: free
@@ -36,7 +36,7 @@ services:
 
   # Frontend - plain HTML/CSS/JavaScript
   - type: web
-    name: coderush-frontend
+    name: Yukti-Cli
     runtime: static
     rootDir: frontend
     staticPublishPath: .
