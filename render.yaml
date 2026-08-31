@@ -38,5 +38,4 @@ services:
   - type: web
     name: Yukti-Cli
     runtime: static
-    rootDir: frontend
-    staticPublishPath: .
+    staticPublishPath: frontend
