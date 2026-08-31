@@ -34,20 +34,9 @@ services:
 
     healthCheckPath: /health
 
-  # Frontend
+  # Frontend - plain HTML/CSS/JavaScript
   - type: web
     name: coderush-frontend
     runtime: static
     rootDir: frontend
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
-
-    headers:
-      - path: /*
-        name: Cache-Control
-        value: no-cache
-
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+    staticPublishPath: .
