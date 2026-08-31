@@ -2,7 +2,7 @@ services:
 
   # Backend
   - type: web
-    name: Yukti-Cli
+    name: Yukti-Cli-backend
     runtime: python
     region: oregon
     plan: free
@@ -34,7 +34,7 @@ services:
 
     healthCheckPath: /health
 
-  # Frontend - plain HTML/CSS/JavaScript
+  # Frontend
   - type: web
     name: Yukti-Cli
     runtime: static
